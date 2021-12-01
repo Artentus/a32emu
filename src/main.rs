@@ -255,35 +255,34 @@ impl EmuState {
         Ok(())
     }
 
-    fn clock(&mut self) -> GameResult {
-        let brk = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
-        if brk {
-            self.running = false;
-        } else {
-            let mut dma = borrow_shared(&self.dma);
-            if dma.run {
-                self.mem_bus.copy(dma.src(), dma.dst(), dma.len());
-                dma.run = false;
-            }
+    fn clock(&mut self, ctx: &mut Context) {
+        let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
+        match result {
+            ClockResult::Break => self.running = false,
+            ClockResult::Halt => ggez::event::quit(ctx),
+            ClockResult::Error => panic!("CPU error"),
+            _ => {}
         }
 
-        Ok(())
+        let mut dma = borrow_shared(&self.dma);
+        if dma.run {
+            self.mem_bus.copy(dma.src(), dma.dst(), dma.len());
+            dma.run = false;
+        }
     }
 
-    fn clock_frame(&mut self) -> GameResult {
+    fn clock_frame(&mut self, ctx: &mut Context) {
         self.fractional_cycles += FRACT_CYCLES_PER_FRAME;
         let cycles_to_add = self.fractional_cycles as u64;
         self.fractional_cycles -= cycles_to_add as f64;
         let cycle_count = WHOLE_CYCLES_PER_FRAME + cycles_to_add;
 
         for _ in 0..cycle_count {
-            self.clock()?;
+            self.clock(ctx);
             if !self.running {
                 break;
             }
         }
-
-        Ok(())
     }
 }
 impl EventHandler<GameError> for EmuState {
@@ -314,7 +313,7 @@ impl EventHandler<GameError> for EmuState {
         self.process_terminal_input()?;
 
         if self.running {
-            self.clock_frame()?;
+            self.clock_frame(ctx);
         }
 
         {
@@ -479,9 +478,7 @@ impl EventHandler<GameError> for EmuState {
             KeyCode::D => self.show_debug_info = !self.show_debug_info,
             KeyCode::C => {
                 if !self.running {
-                    if let Err(_) = self.clock() {
-                        ggez::event::quit(ctx);
-                    }
+                    self.clock(ctx);
                 }
             }
             KeyCode::R => {

@@ -149,6 +149,8 @@ struct OutInstruction {
 enum Instruction {
     Nop,
     Brk,
+    Hlt,
+    Err,
     Alu(AluInstruction),
     Load(LoadInstruction),
     Store(StoreInstruction),
@@ -165,13 +167,13 @@ impl Instruction {
         let reg3 = ((code >> 17) & 0x1F) as Register;
 
         match grp {
-            0x0 => {
-                if (op & 0x1) == 0 {
-                    Self::Nop
-                } else {
-                    Self::Brk
-                }
-            }
+            0x0 => match op & 0x3 {
+                0x0 => Self::Nop,
+                0x1 => Self::Brk,
+                0x2 => Self::Hlt,
+                0x3 => Self::Err,
+                _ => unreachable!(),
+            },
             0x1 => {
                 let inst = AluInstruction {
                     op: AluOperation::decode(op),
@@ -330,6 +332,14 @@ impl Instruction {
             _ => unreachable!(),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClockResult {
+    Continue,
+    Break,
+    Halt,
+    Error,
 }
 
 pub struct Cpu {
@@ -516,7 +526,7 @@ impl Cpu {
         }
     }
 
-    pub fn clock(&mut self, mem: &mut MemoryBus, io: &mut IoBus) -> bool {
+    pub fn clock(&mut self, mem: &mut MemoryBus, io: &mut IoBus) -> ClockResult {
         let inst = mem.read32(self.pc.0 as usize);
         self.inst = Instruction::decode(inst);
         self.pc += Wrapping(4);
@@ -531,13 +541,15 @@ impl Cpu {
         };
 
         match self.inst {
-            Instruction::Nop => false,
-            Instruction::Brk => true,
+            Instruction::Nop => ClockResult::Continue,
+            Instruction::Brk => ClockResult::Break,
+            Instruction::Hlt => ClockResult::Halt,
+            Instruction::Err => ClockResult::Error,
             Instruction::Alu(inst) => {
                 let result = self.exec_alu(inst.op, inst.lhs, inst.rhs);
                 self.write_reg(inst.dst, result);
 
-                false
+                ClockResult::Continue
             }
             Instruction::Load(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
@@ -548,7 +560,7 @@ impl Cpu {
                 };
                 self.write_reg(inst.dst, value);
 
-                false
+                ClockResult::Continue
             }
             Instruction::Store(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
@@ -559,7 +571,7 @@ impl Cpu {
                     MemoryMode::Bits8 => mem.write8(addr, value as u8),
                 }
 
-                false
+                ClockResult::Continue
             }
             Instruction::Jump(inst) => {
                 let mut addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset);
@@ -568,21 +580,21 @@ impl Cpu {
                 }
                 self.jump(addr, inst.con);
 
-                false
+                ClockResult::Continue
             }
             Instruction::In(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
                 let value = io.read(addr);
                 self.write_reg(inst.dst, value);
 
-                false
+                ClockResult::Continue
             }
             Instruction::Out(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
                 let value = self.read_reg(inst.src);
                 io.write(addr, value);
 
-                false
+                ClockResult::Continue
             }
         }
     }
