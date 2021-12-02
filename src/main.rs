@@ -8,6 +8,7 @@ use device::*;
 
 use crossterm::{cursor, style, terminal};
 use crossterm::{ExecutableCommand, QueueableCommand};
+use getopts::Options;
 use ggez::conf::{NumSamples, WindowMode, WindowSetup};
 use ggez::event::{EventHandler, KeyCode, KeyMods};
 #[allow(unused_imports)]
@@ -136,6 +137,60 @@ impl Utf8Builder {
     }
 }
 
+struct HeadlessState {
+    cpu: Cpu,
+    dma: SharedRef<DmaController>,
+    uart: SharedRef<UartController>,
+    mem_bus: MemoryBus,
+    io_bus: IoBus,
+    utf8_builder: Utf8Builder,
+}
+impl HeadlessState {
+    fn new() -> Self {
+        let mut io_bus = IoBus::new();
+
+        let dma = make_shared(DmaController::new());
+        io_bus.map_device(clone_shared(&dma), 0x000, 0x003, 0x003, 0x000);
+        let uart = make_shared(UartController::new());
+        io_bus.map_device(clone_shared(&uart), 0x004, 0x007, 0x003, 0x000);
+
+        Self {
+            cpu: Cpu::new(),
+            dma,
+            uart,
+            mem_bus: MemoryBus::new(),
+            io_bus,
+            utf8_builder: Utf8Builder::new(),
+        }
+    }
+
+    fn clock(&mut self) -> ClockResult {
+        let result = { self.cpu.clock(&mut self.mem_bus, &mut self.io_bus) };
+
+        {
+            let mut dma = borrow_shared(&self.dma);
+            if dma.run {
+                self.mem_bus
+                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
+                dma.run = false;
+            }
+        }
+
+        {
+            let mut uart = borrow_shared(&self.uart);
+            while let Some(byte) = uart.host_read() {
+                self.utf8_builder.push_byte(byte);
+            }
+        }
+
+        while let Some(c) = self.utf8_builder.pop_char() {
+            print!("{}", c);
+        }
+
+        result
+    }
+}
+
 struct EmuState {
     cpu: Cpu,
     dma: SharedRef<DmaController>,
@@ -256,19 +311,23 @@ impl EmuState {
     }
 
     fn clock(&mut self, ctx: &mut Context) {
-        let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
-        match result {
-            ClockResult::Break => self.running = false,
-            ClockResult::Halt => ggez::event::quit(ctx),
-            ClockResult::Error => panic!("CPU error"),
-            _ => {}
+        {
+            let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
+            match result {
+                ClockResult::Break => self.running = false,
+                ClockResult::Halt => ggez::event::quit(ctx),
+                ClockResult::Error => panic!("CPU error"),
+                _ => {}
+            }
         }
 
-        let mut dma = borrow_shared(&self.dma);
-        if dma.run {
-            self.mem_bus
-                .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
-            dma.run = false;
+        {
+            let mut dma = borrow_shared(&self.dma);
+            if dma.run {
+                self.mem_bus
+                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
+                dma.run = false;
+            }
         }
     }
 
@@ -506,25 +565,56 @@ impl EventHandler<GameError> for EmuState {
     }
 }
 
-fn main() -> GameResult {
-    let window_setup = WindowSetup::default()
-        .title(&format!("{} v{}", TITLE, VERSION))
-        .vsync(false)
-        .srgb(true)
-        .samples(NumSamples::One);
-    let window_mode = WindowMode::default().dimensions(
-        (SCREEN_WIDTH as f32) * SCREEN_SCALE,
-        (SCREEN_HEIGHT as f32) * SCREEN_SCALE,
-    );
-    let builder = ContextBuilder::new(TITLE, AUTHOR)
-        .window_setup(window_setup)
-        .window_mode(window_mode);
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let mut opts = Options::new();
+    opts.optflag("", "headless", "run in headless mode");
+    opts.optopt("", "max-cycles", "max cycles before abort", "INT");
+    let matches = opts.parse(args)?;
 
-    let (mut ctx, event_loop) = builder.build()?;
+    let headless = matches.opt_present("headless");
+    let max_cycles: u64 = matches
+        .opt_get_default("max-cycles", 1_000_000)
+        .unwrap_or(1_000_000);
 
-    const FONT_BYTES: &[u8] = include_bytes!("../res/SourceCodePro-Bold.ttf");
-    let font = Font::new_glyph_font_bytes(&mut ctx, FONT_BYTES)?;
+    if headless {
+        let mut state = HeadlessState::new();
+        let mut cycles: u64 = 0;
 
-    let state = EmuState::new(font)?;
-    event::run(ctx, event_loop, state)
+        loop {
+            match state.clock() {
+                ClockResult::Halt => break,
+                ClockResult::Error => Err("CPU error")?,
+                _ => {}
+            }
+
+            cycles += 1;
+            if cycles > max_cycles {
+                Err("CPU did not stop within cycle limit")?;
+            }
+        }
+
+        Ok(())
+    } else {
+        let window_setup = WindowSetup::default()
+            .title(&format!("{} v{}", TITLE, VERSION))
+            .vsync(false)
+            .srgb(true)
+            .samples(NumSamples::One);
+        let window_mode = WindowMode::default().dimensions(
+            (SCREEN_WIDTH as f32) * SCREEN_SCALE,
+            (SCREEN_HEIGHT as f32) * SCREEN_SCALE,
+        );
+        let builder = ContextBuilder::new(TITLE, AUTHOR)
+            .window_setup(window_setup)
+            .window_mode(window_mode);
+
+        let (mut ctx, event_loop) = builder.build()?;
+
+        const FONT_BYTES: &[u8] = include_bytes!("../res/SourceCodePro-Bold.ttf");
+        let font = Font::new_glyph_font_bytes(&mut ctx, FONT_BYTES)?;
+
+        let state = EmuState::new(font)?;
+        event::run(ctx, event_loop, state);
+    }
 }
