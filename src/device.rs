@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
-
 use crate::{borrow_shared, SharedRef, Word};
 use align_data::include_aligned;
 use lru::LruCache;
+use std::collections::VecDeque;
+use std::num::Wrapping;
 
 const ROM_SIZE: usize = 0x1000;
 const RAM_SIZE: usize = 0x1000000;
@@ -90,25 +90,12 @@ impl Ram {
     pub fn write8(&mut self, addr: usize, value: u8) {
         write!(u8, self.mem.as_mut(), (addr % RAM_SIZE) >> 0, value);
     }
+}
 
-    pub fn copy(&mut self, src: usize, dst: usize, len: usize) {
-        let src = src >> 2;
-        let dst = dst >> 2;
-
-        let src_end = usize::min(src + len, RAM_SIZE / 4);
-        let dst_end = usize::min(dst + len, RAM_SIZE / 4);
-        let src_len = src_end - src;
-        let dst_len = dst_end - dst;
-        let len = usize::min(src_len, dst_len);
-
-        if len > 0 {
-            unsafe {
-                let src_ptr = self.mem.as_ptr().offset(src as isize);
-                let dst_ptr = self.mem.as_mut_ptr().offset(dst as isize);
-                std::ptr::copy(src_ptr, dst_ptr, len);
-            }
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CopyDirection {
+    Forward,
+    Backward,
 }
 
 pub struct MemoryBus {
@@ -175,12 +162,27 @@ impl MemoryBus {
         }
     }
 
-    pub fn copy(&mut self, src: usize, dst: usize, len: usize) {
-        let src_msb = (src >> 24) as u8;
-        let dst_msb = (dst >> 24) as u8;
+    pub fn copy(&mut self, src: usize, dst: usize, len: usize, dir: CopyDirection) {
+        let mut src = Wrapping(src);
+        let mut dst = Wrapping(dst);
+        let mut len = len;
 
-        if (src_msb == 0x01) && (dst_msb == 0x01) {
-            self.ram.copy(src, dst, len);
+        while len > 0 {
+            let value = self.read32(src.0);
+            self.write32(dst.0, value);
+
+            match dir {
+                CopyDirection::Forward => {
+                    src += Wrapping(4);
+                    dst += Wrapping(4);
+                }
+                CopyDirection::Backward => {
+                    src -= Wrapping(4);
+                    dst -= Wrapping(4);
+                }
+            }
+
+            len -= 1;
         }
     }
 }
@@ -305,24 +307,28 @@ impl DmaController {
         }
     }
 
+    #[inline]
     pub fn src(&self) -> usize {
-        if (self.regs[3] & 0x1) == 0 {
-            self.regs[0] as usize
-        } else {
-            (self.regs[0] - (self.regs[2] * 4) + 4) as usize
-        }
+        self.regs[0] as usize
     }
 
+    #[inline]
     pub fn dst(&self) -> usize {
-        if (self.regs[3] & 0x1) == 0 {
-            self.regs[1] as usize
-        } else {
-            (self.regs[1] - (self.regs[2] * 4) + 4) as usize
-        }
+        self.regs[1] as usize
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
-        self.regs[3] as usize
+        self.regs[2] as usize
+    }
+
+    #[inline]
+    pub fn dir(&self) -> CopyDirection {
+        if self.regs[3] == 0 {
+            CopyDirection::Forward
+        } else {
+            CopyDirection::Backward
+        }
     }
 
     pub fn reset(&mut self) {
@@ -337,10 +343,15 @@ impl Device for DmaController {
 
     fn write(&mut self, addr: usize, value: Word) {
         let addr = addr & 0x3;
-        self.regs[addr] = value;
-        if addr == 0x3 {
+
+        self.regs[addr] = if addr == 0x2 {
+            value & 0x3FFFFFFF
+        } else if addr == 0x3 {
             self.run = true;
-        }
+            value & 0x1
+        } else {
+            value & 0xFFFFFFFC
+        };
     }
 }
 

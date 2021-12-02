@@ -266,7 +266,8 @@ impl EmuState {
 
         let mut dma = borrow_shared(&self.dma);
         if dma.run {
-            self.mem_bus.copy(dma.src(), dma.dst(), dma.len());
+            self.mem_bus
+                .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
             dma.run = false;
         }
     }
