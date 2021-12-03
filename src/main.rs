@@ -566,7 +566,7 @@ impl EventHandler<GameError> for EmuState {
 }
 
 fn print_usage(opts: Options) {
-    let brief = format!("Usage: a32emu [--headless [--max-cycles INT] [--rom FILE]]");
+    let brief = format!("Usage: a32emu [--headless [--max-cycles INT]] [--rom FILE]");
     println!("{}", opts.usage(&brief));
 }
 
@@ -604,7 +604,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             }
 
             unsafe {
-                assert!(ROM_VEC.len() <= (device::ROM_SIZE / 4), "ROM file is too large");
+                if ROM_VEC.len() > (device::ROM_SIZE / 4) {
+                    Err("ROM file is too large")?;
+                }
+
                 while ROM_VEC.len() < (device::ROM_SIZE / 4) {
                     ROM_VEC.push(0);
                 }
