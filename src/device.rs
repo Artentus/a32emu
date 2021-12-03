@@ -1,13 +1,13 @@
 use crate::{borrow_shared, SharedRef, Word};
-use align_data::include_aligned;
+use align_data::include_transmute;
 use lru::LruCache;
 use std::collections::VecDeque;
 use std::num::Wrapping;
 
-const ROM_SIZE: usize = 0x1000;
-const RAM_SIZE: usize = 0x1000000;
+pub const ROM_SIZE: usize = 0x1000;
+pub const RAM_SIZE: usize = 0x1000000;
 
-static KERNEL_ROM: &[u8; ROM_SIZE] = include_aligned!(u32, "../res/kernel_rom.bin");
+static KERNEL_ROM: [u32; ROM_SIZE / 4] = unsafe { include_transmute!("../res/kernel_rom.bin") };
 
 macro_rules! read {
     ($t: ty, $mem: expr, $addr: expr) => {{
@@ -26,12 +26,12 @@ macro_rules! write {
 }
 
 pub struct Rom {
-    mem: &'static [u8],
+    mem: &'static [u32],
 }
 impl Rom {
     #[inline]
-    pub fn new() -> Self {
-        Self { mem: KERNEL_ROM }
+    pub fn new(mem: &'static [u32]) -> Self {
+        Self { mem }
     }
 
     #[inline]
@@ -47,6 +47,11 @@ impl Rom {
     #[inline]
     pub fn read8(&self, addr: usize) -> u8 {
         read!(u8, self.mem, (addr % ROM_SIZE) >> 0)
+    }
+}
+impl Default for Rom {
+    fn default() -> Self {
+        Self { mem: &KERNEL_ROM }
     }
 }
 
@@ -103,11 +108,17 @@ pub struct MemoryBus {
     pub ram: Ram,
 }
 impl MemoryBus {
-    #[inline]
-    pub fn new() -> Self {
-        Self {
-            rom: Rom::new(),
-            ram: Ram::new(),
+    pub fn new(rom: Option<&'static [u32]>) -> Self {
+        if let Some(rom) = rom {
+            Self {
+                rom: Rom::new(rom),
+                ram: Ram::new(),
+            }
+        } else {
+            Self {
+                rom: Rom::default(),
+                ram: Ram::new(),
+            }
         }
     }
 

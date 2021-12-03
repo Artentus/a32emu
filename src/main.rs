@@ -19,7 +19,7 @@ use ggez::{event, graphics, timer, Context, ContextBuilder, GameError, GameResul
 use spin_sleep::LoopHelper;
 use std::cell::{RefCell, RefMut};
 use std::collections::VecDeque;
-use std::io::{Stdout, Write};
+use std::io::{Read, Stdout, Write};
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -146,7 +146,7 @@ struct HeadlessState {
     utf8_builder: Utf8Builder,
 }
 impl HeadlessState {
-    fn new() -> Self {
+    fn new(rom: Option<&'static [u32]>) -> Self {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -158,7 +158,7 @@ impl HeadlessState {
             cpu: Cpu::new(),
             dma,
             uart,
-            mem_bus: MemoryBus::new(),
+            mem_bus: MemoryBus::new(rom),
             io_bus,
             utf8_builder: Utf8Builder::new(),
         }
@@ -207,7 +207,7 @@ struct EmuState {
     loop_helper: LoopHelper,
 }
 impl EmuState {
-    fn new(font: Font) -> GameResult<Self> {
+    fn new(rom: Option<&'static [u32]>, font: Font) -> GameResult<Self> {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -227,7 +227,7 @@ impl EmuState {
             cpu: Cpu::new(),
             dma,
             uart,
-            mem_bus: MemoryBus::new(),
+            mem_bus: MemoryBus::new(rom),
             io_bus,
 
             stdout,
@@ -565,20 +565,58 @@ impl EventHandler<GameError> for EmuState {
     }
 }
 
+fn print_usage(opts: Options) {
+    let brief = format!("Usage: a32emu [--headless [--max-cycles INT] [--rom FILE]]");
+    println!("{}", opts.usage(&brief));
+}
+
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let mut opts = Options::new();
     opts.optflag("", "headless", "run in headless mode");
     opts.optopt("", "max-cycles", "max cycles before abort", "INT");
-    let matches = opts.parse(args)?;
+    opts.optopt("", "rom", "Binary file to load into the ROM", "FILE");
+
+    let result = opts.parse(args);
+    if let Err(_) = result {
+        print_usage(opts);
+    }
+    let matches = result?;
 
     let headless = matches.opt_present("headless");
+
+    const DEFAULT_MAX_CYCLES: u64 = 1_000_000;
     let max_cycles: u64 = matches
-        .opt_get_default("max-cycles", 1_000_000)
-        .unwrap_or(1_000_000);
+        .opt_get_default("max-cycles", DEFAULT_MAX_CYCLES)
+        .unwrap_or(DEFAULT_MAX_CYCLES);
+
+    let rom: Option<&'static [u32]> = match matches.opt_str("rom") {
+        Some(path) => {
+            let mut rom_file = std::fs::File::open(path)?;
+            static mut ROM_VEC: Vec<u32> = Vec::new();
+
+            loop {
+                let mut buffer: [u8; 4] = [0; 4];
+                match rom_file.read_exact(&mut buffer) {
+                    Ok(_) => unsafe { ROM_VEC.push(u32::from_ne_bytes(buffer)) },
+                    Err(_) => break,
+                }
+            }
+
+            unsafe {
+                assert!(ROM_VEC.len() <= (device::ROM_SIZE / 4), "ROM file is too large");
+                while ROM_VEC.len() < (device::ROM_SIZE / 4) {
+                    ROM_VEC.push(0);
+                }
+            }
+
+            Some(unsafe { &ROM_VEC })
+        }
+        None => None,
+    };
 
     if headless {
-        let mut state = HeadlessState::new();
+        let mut state = HeadlessState::new(rom);
         let mut cycles: u64 = 0;
 
         loop {
@@ -614,7 +652,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         const FONT_BYTES: &[u8] = include_bytes!("../res/SourceCodePro-Bold.ttf");
         let font = Font::new_glyph_font_bytes(&mut ctx, FONT_BYTES)?;
 
-        let state = EmuState::new(font)?;
+        let state = EmuState::new(rom, font)?;
         event::run(ctx, event_loop, state);
     }
 }
