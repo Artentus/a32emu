@@ -455,14 +455,18 @@ impl Cpu {
                 result
             }
             AluOperation::Sub => {
-                let result = (lhs_val as DWord) + ((!rhs_val) as DWord) + 1;
+                let rhs_val = !rhs_val;
+
+                let result = (lhs_val as DWord) + (rhs_val as DWord) + 1;
                 self.c = (result >> 32) != 0;
                 set_flags!(result);
                 result
             }
             AluOperation::Subb => {
+                let rhs_val = !rhs_val;
+
                 let c = if self.c { 1 } else { 0 };
-                let result = (lhs_val as DWord) + ((!rhs_val) as DWord) + c;
+                let result = (lhs_val as DWord) + (rhs_val as DWord) + c;
                 self.c = (result >> 32) != 0;
                 set_flags!(result);
                 result
