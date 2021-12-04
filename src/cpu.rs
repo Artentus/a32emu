@@ -610,19 +610,30 @@ impl Display for Cpu {
         let s_val = if self.s { 1 } else { 0 };
         let o_val = if self.o { 1 } else { 0 };
 
-        writeln!(f, "PC: 0x{:0>8X}", self.pc.0)?;
+        writeln!(f, "PC : 0x{:0>8X}", self.pc.0)?;
         writeln!(f)?;
 
         writeln!(f, "C Z S O")?;
         writeln!(f, "{} {} {} {}", c_val, z_val, s_val, o_val)?;
         writeln!(f)?;
 
+        #[rustfmt::skip]
+        const REG_NAMES: [&str; REG_COUNT] = [
+            "zero", "ra", "bp", "sp",
+            "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
+            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9",
+        ];
+
         for i in 0..REG_COUNT {
-            if i > 9 {
-                writeln!(f, "R{}:  0x{:0>8X}", i, self.regs[i])?;
-            } else {
-                writeln!(f, "R{}:   0x{:0>8X}", i, self.regs[i])?;
-            }
+            let base_name = format!("R{}", i);
+            let abi_name = format!("({})", REG_NAMES[i]);
+
+            writeln!(
+                f,
+                "{:<3} {:<6} : 0x{:0>8X}",
+                base_name, abi_name, self.regs[i]
+            )?;
         }
 
         Ok(())
