@@ -428,13 +428,13 @@ impl Cpu {
         let rhs_val = self.read_source(rhs);
 
         macro_rules! set_flags {
-            ($result: ident) => {
+            ($lhs:expr, $rhs:expr, $result: ident) => {
                 let $result = $result as Word;
                 self.z = $result == 0;
                 self.s = ($result >> 31) != 0;
 
-                let lhs_s = (lhs_val >> 31) != 0;
-                let rhs_s = (rhs_val >> 31) != 0;
+                let lhs_s = ($lhs >> 31) != 0;
+                let rhs_s = ($rhs >> 31) != 0;
                 self.o = (lhs_s == rhs_s) && (self.s != lhs_s);
             };
         }
@@ -444,14 +444,14 @@ impl Cpu {
             AluOperation::Add => {
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + 0;
                 self.c = (result >> 32) != 0;
-                set_flags!(result);
+                set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Addc => {
                 let c = if self.c { 1 } else { 0 };
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + c;
                 self.c = (result >> 32) != 0;
-                set_flags!(result);
+                set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Sub => {
@@ -459,7 +459,7 @@ impl Cpu {
 
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + 1;
                 self.c = (result >> 32) != 0;
-                set_flags!(result);
+                set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Subb => {
@@ -468,7 +468,7 @@ impl Cpu {
                 let c = if self.c { 1 } else { 0 };
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + c;
                 self.c = (result >> 32) != 0;
-                set_flags!(result);
+                set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::And => {
