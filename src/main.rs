@@ -202,6 +202,7 @@ struct EmuState {
     utf8_builder: Utf8Builder,
     font: Font,
     running: bool,
+    halted: bool,
     show_debug_info: bool,
     fractional_cycles: f64,
     loop_helper: LoopHelper,
@@ -234,6 +235,7 @@ impl EmuState {
             utf8_builder: Utf8Builder::new(),
             font,
             running: false,
+            halted: false,
             show_debug_info: true,
             fractional_cycles: 0.0,
             loop_helper: LoopHelper::builder()
@@ -315,8 +317,14 @@ impl EmuState {
             let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
             match result {
                 ClockResult::Break => self.running = false,
-                ClockResult::Halt => ggez::event::quit(ctx),
-                ClockResult::Error => panic!("CPU error"),
+                ClockResult::Halt => {
+                    self.running = false;
+                    self.halted = true;
+                }
+                ClockResult::Error => {
+                    self.running = false;
+                    self.halted = true;
+                }
                 _ => {}
             }
         }
@@ -361,6 +369,11 @@ impl EventHandler<GameError> for EmuState {
                         fps,
                         format_clock_rate(fps * CYCLES_PER_FRAME)
                     ),
+                );
+            } else if self.halted {
+                graphics::set_window_title(
+                    ctx,
+                    &format!("{} v{} - {:.2} fps - halted", TITLE, VERSION, fps),
                 );
             } else {
                 graphics::set_window_title(
@@ -534,15 +547,20 @@ impl EventHandler<GameError> for EmuState {
     ) {
         match keycode {
             KeyCode::Escape => ggez::event::quit(ctx),
-            KeyCode::Space => self.running = !self.running,
+            KeyCode::Space => {
+                if !self.halted {
+                    self.running = !self.running
+                }
+            }
             KeyCode::D => self.show_debug_info = !self.show_debug_info,
             KeyCode::C => {
-                if !self.running {
+                if !self.halted && !self.running {
                     self.clock(ctx);
                 }
             }
             KeyCode::R => {
                 self.running = false;
+                self.halted = false;
                 self.reset();
             }
             _ => {}

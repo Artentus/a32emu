@@ -603,7 +603,7 @@ impl Cpu {
                 } else {
                     0
                 };
-                
+
                 self.write_reg(inst.dst, value);
 
                 ClockResult::Continue
