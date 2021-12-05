@@ -350,6 +350,7 @@ pub struct Cpu {
     z: Flag,
     s: Flag,
     o: Flag,
+    k: Flag,
 
     inst: Instruction,
     imm: Word,
@@ -363,6 +364,7 @@ impl Cpu {
             z: false,
             s: false,
             o: false,
+            k: true,
             inst: Instruction::Nop,
             imm: 0,
         }
@@ -399,6 +401,7 @@ impl Cpu {
         self.z = false;
         self.s = false;
         self.o = false;
+        self.k = true;
         self.inst = Instruction::Nop;
         self.imm = 0;
     }
@@ -557,22 +560,29 @@ impl Cpu {
             }
             Instruction::Load(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
-                let value = match inst.mode {
-                    MemoryMode::Bits32 => mem.read32(addr) as Word,
-                    MemoryMode::Bits16 => mem.read16(addr) as Word,
-                    MemoryMode::Bits8 => mem.read8(addr) as Word,
+                let value = if self.k || (addr >= 0x01000000) {
+                    match inst.mode {
+                        MemoryMode::Bits32 => mem.read32(addr) as Word,
+                        MemoryMode::Bits16 => mem.read16(addr) as Word,
+                        MemoryMode::Bits8 => mem.read8(addr) as Word,
+                    }
+                } else {
+                    0
                 };
+
                 self.write_reg(inst.dst, value);
 
                 ClockResult::Continue
             }
             Instruction::Store(inst) => {
                 let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
-                let value = self.read_reg(inst.src);
-                match inst.mode {
-                    MemoryMode::Bits32 => mem.write32(addr, value as u32),
-                    MemoryMode::Bits16 => mem.write16(addr, value as u16),
-                    MemoryMode::Bits8 => mem.write8(addr, value as u8),
+                if self.k || (addr >= 0x01000000) {
+                    let value = self.read_reg(inst.src);
+                    match inst.mode {
+                        MemoryMode::Bits32 => mem.write32(addr, value as u32),
+                        MemoryMode::Bits16 => mem.write16(addr, value as u16),
+                        MemoryMode::Bits8 => mem.write8(addr, value as u8),
+                    }
                 }
 
                 ClockResult::Continue
@@ -587,16 +597,23 @@ impl Cpu {
                 ClockResult::Continue
             }
             Instruction::In(inst) => {
-                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
-                let value = io.read(addr);
+                let value = if self.k {
+                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                    io.read(addr)
+                } else {
+                    0
+                };
+                
                 self.write_reg(inst.dst, value);
 
                 ClockResult::Continue
             }
             Instruction::Out(inst) => {
-                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
-                let value = self.read_reg(inst.src);
-                io.write(addr, value);
+                if self.k {
+                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                    let value = self.read_reg(inst.src);
+                    io.write(addr, value);
+                }
 
                 ClockResult::Continue
             }
@@ -609,12 +626,13 @@ impl Display for Cpu {
         let z_val = if self.z { 1 } else { 0 };
         let s_val = if self.s { 1 } else { 0 };
         let o_val = if self.o { 1 } else { 0 };
+        let k_val = if self.k { 1 } else { 0 };
 
         writeln!(f, "PC : 0x{:0>8X}", self.pc.0)?;
         writeln!(f)?;
 
-        writeln!(f, "C Z S O")?;
-        writeln!(f, "{} {} {} {}", c_val, z_val, s_val, o_val)?;
+        writeln!(f, "C Z S O K")?;
+        writeln!(f, "{} {} {} {} {}", c_val, z_val, s_val, o_val, k_val)?;
         writeln!(f)?;
 
         #[rustfmt::skip]
