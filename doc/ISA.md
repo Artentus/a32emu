@@ -347,28 +347,28 @@
 
 | Mnemonic + operands | Expands to               |
 | ------------------- | ------------------------ |
-| `PUSH    s        ` | <code>ST [sp], s<br>SUB sp, sp, 4</code> |
+| `PUSH    s        ` | <pre>ST [sp], s<br>SUB sp, sp, 4</pre> |
 |                     |                          |
-| `POP     d        ` | <code>ADD sp, sp, 4<br>LD d, [sp]</code> |
+| `POP     d        ` | <pre>ADD sp, sp, 4<br>LD d, [sp]</pre> |
 |                     |                          |
-| `PUSH8   s        ` | <code>ST8 [sp], s<br>SUB sp, sp, 4</code> |
+| `PUSH8   s        ` | <pre>ST8 [sp], s<br>SUB sp, sp, 4</pre> |
 |                     |                          |
-| `POP8    d        ` | <code>ADD sp, sp, 4<br>LD8 d, [sp]</code> |
+| `POP8    d        ` | <pre>ADD sp, sp, 4<br>LD8 d, [sp]</pre> |
 |                     |                          |
-| `PUSH16  s        ` | <code>ST16 [sp], s<br>SUB sp, sp, 4</code> |
+| `PUSH16  s        ` | <pre>ST16 [sp], s<br>SUB sp, sp, 4</pre> |
 |                     |                          |
-| `POP16   d        ` | <code>ADD sp, sp, 4<br>LD16 d, [sp]</code> |
+| `POP16   d        ` | <pre>ADD sp, sp, 4<br>LD16 d, [sp]</pre> |
 |                     |                          |
-| `CALL    s        ` | <code>MOV bp, sp<br>LD ra, ret_addr<br>JMP s<br>ret_addr:</code> |
+| `CALL    s        ` | <pre>MOV bp, sp<br>LD ra, ret_addr<br>JMP s<br>ret_addr:</pre> |
 |                     |                          |
-| `CALL    [s]      ` | <code>MOV bp, sp<br>LD ra, ret_addr<br>JMP [s]<br>ret_addr:</code> |
+| `CALL    [s]      ` | <pre>MOV bp, sp<br>LD ra, ret_addr<br>JMP [s]<br>ret_addr:</pre> |
 |                     |                          |
-| `CALL    v        ` | <code>MOV bp, sp<br>LD ra, ret_addr<br>JMP v<br>ret_addr:</code> |
+| `CALL    v        ` | <pre>MOV bp, sp<br>LD ra, ret_addr<br>JMP v<br>ret_addr:</pre> |
 |                     |                          |
-| `CALL    [v]      ` | <code>MOV bp, sp<br>LD ra, ret_addr<br>JMP [v]<br>ret_addr:</code> |
+| `CALL    [v]      ` | <pre>MOV bp, sp<br>LD ra, ret_addr<br>JMP [v]<br>ret_addr:</pre> |
 |                     |                          |
-| `RET     v        ` | <code>ADD sp, bp, (v * 4)<br>JMP ra</code> |
+| `RET     v        ` | <pre>ADD sp, bp, (v * 4)<br>JMP ra</pre> |
 |                     |                          |
-| `CALLS            ` | <code>LD ra, ret_addr<br>SYS<br>ret_addr:</code> |
+| `CALLS            ` | <pre>LD ra, ret_addr<br>SYS<br>ret_addr:</pre> |
 |                     |                          |
-| `RETS             ` | <code>CLRK<br>JMP ra</code> |
+| `RETS             ` | <pre>CLRK<br>JMP ra</pre> |
