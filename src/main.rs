@@ -312,7 +312,7 @@ impl EmuState {
         Ok(())
     }
 
-    fn clock(&mut self, ctx: &mut Context) {
+    fn clock(&mut self) {
         {
             let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
             match result {
@@ -339,14 +339,14 @@ impl EmuState {
         }
     }
 
-    fn clock_frame(&mut self, ctx: &mut Context) {
+    fn clock_frame(&mut self) {
         self.fractional_cycles += FRACT_CYCLES_PER_FRAME;
         let cycles_to_add = self.fractional_cycles as u64;
         self.fractional_cycles -= cycles_to_add as f64;
         let cycle_count = WHOLE_CYCLES_PER_FRAME + cycles_to_add;
 
         for _ in 0..cycle_count {
-            self.clock(ctx);
+            self.clock();
             if !self.running {
                 break;
             }
@@ -386,7 +386,7 @@ impl EventHandler<GameError> for EmuState {
         self.process_terminal_input()?;
 
         if self.running {
-            self.clock_frame(ctx);
+            self.clock_frame();
         }
 
         {
@@ -555,7 +555,7 @@ impl EventHandler<GameError> for EmuState {
             KeyCode::D => self.show_debug_info = !self.show_debug_info,
             KeyCode::C => {
                 if !self.halted && !self.running {
-                    self.clock(ctx);
+                    self.clock();
                 }
             }
             KeyCode::R => {

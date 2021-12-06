@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::num::Wrapping;
 
 const REG_COUNT: usize = 32;
+const SYSCALL_ADDRESS: Word = 0x00000FF0;
 
 type Register = u8;
 type Flag = bool;
@@ -157,6 +158,8 @@ enum Instruction {
     Jump(JumpInstruction),
     In(InInstruction),
     Out(OutInstruction),
+    Sys,
+    Clrk,
 }
 impl Instruction {
     fn decode(code: Word) -> Self {
@@ -328,7 +331,13 @@ impl Instruction {
                     Self::In(inst)
                 }
             }
-            0x7 => Self::Nop,
+            0x7 => {
+                if (op & 0x1) == 0 {
+                    Self::Sys
+                } else {
+                    Self::Clrk
+                }
+            },
             _ => unreachable!(),
         }
     }
@@ -614,6 +623,17 @@ impl Cpu {
                     let value = self.read_reg(inst.src);
                     io.write(addr, value);
                 }
+
+                ClockResult::Continue
+            }
+            Instruction::Sys => {
+                self.k = true;
+                self.pc = Wrapping(SYSCALL_ADDRESS);
+
+                ClockResult::Continue
+            }
+            Instruction::Clrk => {
+                self.k = false;
 
                 ClockResult::Continue
             }
