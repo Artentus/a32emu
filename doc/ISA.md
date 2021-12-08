@@ -94,14 +94,19 @@
 | `LD      d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0001_100` | `d = mem[s + v]` |
 | `ST      [d + o], s` | `0_---------_ooooo_sssss_ddddd_0010_100` | `mem[d + o] = s` |
 | `ST      [d + v], s` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0011_100` | `mem[d + v] = s` |
-| `LD8     d, [s + o]` | `0_---------_ooooo_sssss_ddddd_0100_100` | `d = (i8)mem[s + o]` |
-| `LD8     d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0101_100` | `d = (i8)mem[s + o]` |
+| `LD8     d, [s + o]` | `0_---------_ooooo_sssss_ddddd_0100_100` | `d = (u8)mem[s + o]` |
+| `LD8     d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0101_100` | `d = (u8)mem[s + o]` |
 | `ST8     [d + o], s` | `0_---------_ooooo_sssss_ddddd_0110_100` | `mem[d + o] = (i8)s` |
 | `ST8     [d + v], s` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0111_100` | `mem[d + v] = (i8)s` |
-| `LD16    d, [s + o]` | `0_---------_ooooo_sssss_ddddd_1000_100` | `d = (i16)mem[s + o]` |
-| `LD16    d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_1001_100` | `d = (i16)mem[s + o]` |
+| `LD16    d, [s + o]` | `0_---------_ooooo_sssss_ddddd_1000_100` | `d = (u16)mem[s + o]` |
+| `LD16    d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_1001_100` | `d = (u16)mem[s + o]` |
 | `ST16    [d + o], s` | `0_---------_ooooo_sssss_ddddd_1010_100` | `mem[d + o] = (i16)s` |
 | `ST16    [d + v], s` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_1011_100` | `mem[d + v] = (i16)s` |
+|                      |                                          |           |
+| `LD8S    d, [s + o]` | `0_---------_ooooo_sssss_ddddd_1100_100` | `d = (s8)mem[s + o]` |
+| `LD8S    d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_1101_100` | `d = (s8)mem[s + o]` |
+| `LD16S   d, [s + o]` | `0_---------_ooooo_sssss_ddddd_1110_100` | `d = (s16)mem[s + o]` |
+| `LD16S   d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_1111_100` | `d = (s16)mem[s + o]` |
 |                      |                                          |           |
 | `JP.C    s + o     ` | `0_---------_ooooo_sssss_--000_0001_101` | `if C then pc = s + o` |
 | `JP.Z    s + o     ` | `0_---------_ooooo_sssss_--000_0010_101` | `if Z then pc = s + o` |

@@ -98,6 +98,11 @@
     ST16 [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0xA @ 0b100)
     ST16 [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0xB @ 0b100)
 
+    LD8S  {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xC @ 0b100)
+    LD8S  {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xD @ 0b100)
+    LD16S {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xE @ 0b100)
+    LD16S {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xF @ 0b100)
+
     JP.C    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x1 @ 0b101)
     JP.Z    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x2 @ 0b101)
     JP.S    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x3 @ 0b101)
@@ -225,6 +230,11 @@
     LD16 {d: reg}, [{v: i32}] => asm { LD16 {d}, [zero + v] }
     ST16 [{d: reg}], {s: reg} => asm { ST16 [{d} + zero], {s} }
     ST16 [{v: i32}], {s: reg} => asm { ST16 [zero + v], {s} }
+
+    LD8S  {d: reg}, [{s: reg}] => asm { LD8S  {d}, [{s} + zero] }
+    LD8S  {d: reg}, [{v: i32}] => asm { LD8S  {d}, [zero + v] }
+    LD16S {d: reg}, [{s: reg}] => asm { LD16S {d}, [{s} + zero] }
+    LD16S {d: reg}, [{v: i32}] => asm { LD16S {d}, [zero + v] }
 
     JP.EQ   {s: reg} + {o: reg} => asm { JP.Z  {s} + {o} }
     JP.NEQ  {s: reg} + {o: reg} => asm { JP.NZ {s} + {o} }
@@ -368,6 +378,16 @@
     POP16 {d: reg} => asm {
         ADD sp, sp, 4
         LD16 {d}, [sp]
+    }
+
+    POP8S {d: reg} => asm {
+        ADD sp, sp, 4
+        LD8S {d}, [sp]
+    }
+
+    POP16S {d: reg} => asm {
+        ADD sp, sp, 4
+        LD16S {d}, [sp]
     }
 
     CALL {s: reg} => {

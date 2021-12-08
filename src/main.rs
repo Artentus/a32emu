@@ -38,7 +38,7 @@ const WHOLE_CYCLES_PER_FRAME: u64 = CYCLES_PER_FRAME as u64;
 const FRACT_CYCLES_PER_FRAME: f64 = CYCLES_PER_FRAME - (WHOLE_CYCLES_PER_FRAME as f64);
 
 type Word = u32; // Word size of the CPU
-type SWord = i32; // The word size of the CPU as signed (for arithmetic shift)
+type SWord = i32; // The word size of the CPU as signed (for sign extension)
 type DWord = u64; // Double the word size of the CPU (for ALU carry)
 
 type SharedRef<T> = Rc<RefCell<T>>;

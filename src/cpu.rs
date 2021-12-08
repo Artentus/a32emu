@@ -68,6 +68,7 @@ enum MemoryMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct LoadInstruction {
     mode: MemoryMode,
+    signed: bool,
     base: AluSource,
     offset: AluSource,
     dst: Register,
@@ -209,40 +210,58 @@ impl Instruction {
             }
             0x4 => {
                 let is_imm = (op & 0x1) != 0;
-                let is_st = (op & 0x2) != 0;
-
-                let mode = match op >> 2 {
-                    0x0 => MemoryMode::Bits32,
-                    0x1 => MemoryMode::Bits8,
-                    0x2 => MemoryMode::Bits16,
-                    0x3 => return Self::Nop,
-                    _ => unreachable!(),
-                };
-
                 let offset = if is_imm {
                     AluSource::Immediate
                 } else {
                     AluSource::Register(reg3)
                 };
 
-                if is_st {
-                    let inst = StoreInstruction {
-                        mode,
-                        base: AluSource::Register(reg1),
-                        offset,
-                        src: reg2,
+                if (op >> 2) == 0x3 {
+                    let mode = if (op & 0x2) == 0 {
+                        MemoryMode::Bits8
+                    } else {
+                        MemoryMode::Bits16
                     };
 
-                    Self::Store(inst)
-                } else {
                     let inst = LoadInstruction {
                         mode,
+                        signed: true,
                         base: AluSource::Register(reg2),
                         offset,
                         dst: reg1,
                     };
 
                     Self::Load(inst)
+                } else {
+                    let is_st = (op & 0x2) != 0;
+
+                    let mode = match op >> 2 {
+                        0x0 => MemoryMode::Bits32,
+                        0x1 => MemoryMode::Bits8,
+                        0x2 => MemoryMode::Bits16,
+                        _ => unreachable!(),
+                    };
+
+                    if is_st {
+                        let inst = StoreInstruction {
+                            mode,
+                            base: AluSource::Register(reg1),
+                            offset,
+                            src: reg2,
+                        };
+
+                        Self::Store(inst)
+                    } else {
+                        let inst = LoadInstruction {
+                            mode,
+                            signed: false,
+                            base: AluSource::Register(reg2),
+                            offset,
+                            dst: reg1,
+                        };
+
+                        Self::Load(inst)
+                    }
                 }
             }
             0x5 => {
@@ -572,8 +591,22 @@ impl Cpu {
                 let value = if self.k || (addr >= 0x01000000) {
                     match inst.mode {
                         MemoryMode::Bits32 => mem.read32(addr) as Word,
-                        MemoryMode::Bits16 => mem.read16(addr) as Word,
-                        MemoryMode::Bits8 => mem.read8(addr) as Word,
+                        MemoryMode::Bits16 => {
+                            if inst.signed {
+                                let sval = mem.read16(addr) as i16;
+                                (sval as SWord) as Word
+                            } else {
+                                mem.read16(addr) as Word
+                            }
+                        }
+                        MemoryMode::Bits8 => {
+                            if inst.signed {
+                                let sval = mem.read8(addr) as i8;
+                                (sval as SWord) as Word
+                            } else {
+                                mem.read8(addr) as Word
+                            }
+                        }
                     }
                 } else {
                     0
