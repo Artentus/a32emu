@@ -9,9 +9,25 @@ pub const RAM_SIZE: usize = 0x1000000;
 
 static KERNEL_ROM: [u32; ROM_SIZE / 4] = unsafe { include_transmute!("../res/kernel_rom.bin") };
 
+fn transmute_with_len<'a, I, O>(slice: &'a [I]) -> &'a [O] {
+    let in_size = std::mem::size_of::<I>();
+    let out_size = std::mem::size_of::<O>();
+
+    let ptr = slice.as_ptr();
+    unsafe { std::slice::from_raw_parts(ptr as *const O, slice.len() * in_size / out_size) }
+}
+
+fn transmute_with_len_mut<'a, I, O>(slice: &'a mut [I]) -> &'a mut [O] {
+    let in_size = std::mem::size_of::<I>();
+    let out_size = std::mem::size_of::<O>();
+
+    let ptr = slice.as_mut_ptr();
+    unsafe { std::slice::from_raw_parts_mut(ptr as *mut O, slice.len() * in_size / out_size) }
+}
+
 macro_rules! read {
     ($t: ty, $mem: expr, $addr: expr) => {{
-        let mem_t: &[$t] = unsafe { std::mem::transmute($mem) };
+        let mem_t: &[$t] = transmute_with_len($mem);
 
         <$t>::from_le(mem_t[$addr])
     }};
@@ -19,7 +35,7 @@ macro_rules! read {
 
 macro_rules! write {
     ($t: ty, $mem: expr, $addr: expr, $value: expr) => {{
-        let mem_t: &mut [$t] = unsafe { std::mem::transmute($mem) };
+        let mem_t: &mut [$t] = transmute_with_len_mut($mem);
 
         mem_t[$addr] = $value.to_le();
     }};
