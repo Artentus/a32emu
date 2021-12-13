@@ -439,13 +439,15 @@ impl EventHandler<GameError> for EmuState {
             let mut stack_info = String::new();
             if self.cpu.sp() == 0 {
                 stack_info.push_str(&format!("0x{:0>8X} >   <uninit>", self.cpu.sp()));
+            } else if self.cpu.sp() == 0x02_000000 {
+                stack_info.push_str(&format!("0x{:0>8X} >   <empty> ", self.cpu.sp()));
             } else {
                 const MAX_STACK_VALUES: usize = 20;
                 let start = usize::min(
                     (self.cpu.sp() as usize) + (MAX_STACK_VALUES * 4),
                     0x01_FFFFFC,
                 );
-                let end = (self.cpu.sp() as usize) + 4;
+                let end = self.cpu.sp() as usize;
 
                 let mut addr = start;
                 while addr > end {
@@ -453,7 +455,9 @@ impl EventHandler<GameError> for EmuState {
                     stack_info.push_str(&format!("               0x{:0>8X}\n", value));
                     addr -= 4;
                 }
-                stack_info.push_str(&format!("0x{:0>8X} >   <empty>", self.cpu.sp()));
+
+                let value = self.mem_bus.read32(addr);
+                stack_info.push_str(&format!("0x{:0>8X} >   0x{:0>8X}", addr, value));
             }
             let stack_info_frag = TextFragment::new(stack_info)
                 .font(self.font)
