@@ -681,7 +681,7 @@ impl Display for Cpu {
         let o_val = if self.o { 1 } else { 0 };
         let k_val = if self.k { 1 } else { 0 };
 
-        writeln!(f, "PC : 0x{:0>8X}", self.pc.0)?;
+        writeln!(f, "PC: {:0>8X}", self.pc.0)?;
         writeln!(f)?;
 
         writeln!(f, "C Z S O K")?;
@@ -702,7 +702,7 @@ impl Display for Cpu {
 
             writeln!(
                 f,
-                "{:<3} {:<4}: 0x{:0>8X}",
+                "{:<3} {:<4}: {:0>8X}",
                 base_name, abi_name, self.regs[i]
             )?;
         }

@@ -412,9 +412,9 @@ impl EventHandler<GameError> for EmuState {
             const TEXT_SCALE: PxScale = PxScale { x: 20.0, y: 20.0 };
             const TEXT_BACK_COLOR: graphics::Color = graphics::Color::new(0.0, 0.0, 0.0, 1.0);
             const TEXT_FRONT_COLOR: graphics::Color = graphics::Color::new(0.9, 0.9, 0.9, 1.0);
-            const STACK_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 24.0;
-            const MEM_VOFFSET: f32 = TEXT_SCALE.y * 16.0;
-            const MEM_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 104.0;
+            const STACK_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 22.0;
+            const MEM_VOFFSET: f32 = TEXT_SCALE.y * 8.0;
+            const MEM_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 112.0;
 
             let cpu_info = format!("{}", self.cpu);
             let cpu_info_frag = TextFragment::new(cpu_info)
@@ -438,9 +438,9 @@ impl EventHandler<GameError> for EmuState {
 
             let mut stack_info = String::new();
             if self.cpu.sp() == 0 {
-                stack_info.push_str(&format!("0x{:0>8X} >   <uninit>", self.cpu.sp()));
+                stack_info.push_str(&format!("{:0>8X} >   <uninit>", self.cpu.sp()));
             } else if self.cpu.sp() == 0x02_000000 {
-                stack_info.push_str(&format!("0x{:0>8X} >   <empty> ", self.cpu.sp()));
+                stack_info.push_str(&format!("{:0>8X} >   <empty> ", self.cpu.sp()));
             } else {
                 const MAX_STACK_VALUES: usize = 20;
                 let start = usize::min(
@@ -452,12 +452,12 @@ impl EventHandler<GameError> for EmuState {
                 let mut addr = start;
                 while addr > end {
                     let value = self.mem_bus.read32(addr);
-                    stack_info.push_str(&format!("               0x{:0>8X}\n", value));
+                    stack_info.push_str(&format!("             0x{:0>8X}\n", value));
                     addr -= 4;
                 }
 
                 let value = self.mem_bus.read32(addr);
-                stack_info.push_str(&format!("0x{:0>8X} >   0x{:0>8X}", addr, value));
+                stack_info.push_str(&format!("{:0>8X} >   0x{:0>8X}", addr, value));
             }
             let stack_info_frag = TextFragment::new(stack_info)
                 .font(self.font)
@@ -486,10 +486,10 @@ impl EventHandler<GameError> for EmuState {
 
             let mut mem_info = String::new();
             {
-                const MEMORY_OFFSET: usize = 0x011F_FE00;
+                const MEMORY_OFFSET: usize = 0x011F_FF00;
 
                 let mut addr: usize = MEMORY_OFFSET;
-                while addr < (MEMORY_OFFSET + 0x200) {
+                while addr < (MEMORY_OFFSET + 0x100) {
                     mem_info.push_str(&format!("{:0>8X} | ", addr));
 
                     let mut text = String::new();
@@ -498,7 +498,7 @@ impl EventHandler<GameError> for EmuState {
                         mem_info.push_str(&format!("{:0>8X} ", value));
 
                         let ascii = value.to_le_bytes();
-                        for i in 0..3 {
+                        for i in 0..4 {
                             let b = ascii[i];
                             let c = if (b >= 0x20) && (b < 0x7F) {
                                 unsafe { char::from_u32_unchecked(b as u32) }
