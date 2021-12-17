@@ -414,7 +414,7 @@ impl EventHandler<GameError> for EmuState {
             const TEXT_FRONT_COLOR: graphics::Color = graphics::Color::new(0.9, 0.9, 0.9, 1.0);
             const STACK_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 24.0;
             const MEM_VOFFSET: f32 = TEXT_SCALE.y * 16.0;
-            const MEM_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 89.0;
+            const MEM_HOFFSET: f32 = TEXT_SCALE.x * 0.5 * 104.0;
 
             let cpu_info = format!("{}", self.cpu);
             let cpu_info_frag = TextFragment::new(cpu_info)
@@ -486,22 +486,28 @@ impl EventHandler<GameError> for EmuState {
 
             let mut mem_info = String::new();
             {
-                let mut addr: usize = 0x01_000000;
-                while addr < 0x01_000200 {
+                const MEMORY_OFFSET: usize = 0x011F_FE00;
+
+                let mut addr: usize = MEMORY_OFFSET;
+                while addr < (MEMORY_OFFSET + 0x200) {
                     mem_info.push_str(&format!("{:0>8X} | ", addr));
 
                     let mut text = String::new();
                     for _ in 0..8 {
                         let value = self.mem_bus.read32(addr);
-                        let c = if value == 0 {
-                            '.'
-                        } else {
-                            char::from_u32(value).unwrap_or('.')
-                        };
-
                         mem_info.push_str(&format!("{:0>8X} ", value));
-                        text.push(c);
 
+                        let ascii = value.to_le_bytes();
+                        for i in 0..3 {
+                            let b = ascii[i];
+                            let c = if (b >= 0x20) && (b < 0x7F) {
+                                unsafe { char::from_u32_unchecked(b as u32) }
+                            } else {
+                                '.'
+                            };
+                            text.push(c);
+                        }
+                        
                         addr += 4;
                     }
 

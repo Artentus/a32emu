@@ -689,20 +689,20 @@ impl Display for Cpu {
         writeln!(f)?;
 
         #[rustfmt::skip]
-        const REG_NAMES: [&str; REG_COUNT] = [
-            "zero", "ra", "bp", "sp",
+        const REG_NAMES: [&str; REG_COUNT - 1] = [
+            "ra", "bp", "sp",
             "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
             "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
             "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9",
         ];
 
-        for i in 0..REG_COUNT {
-            let base_name = format!("R{}", i);
+        for i in 0..(REG_COUNT - 1) {
+            let base_name = format!("R{}", i + 1);
             let abi_name = format!("({})", REG_NAMES[i]);
 
             writeln!(
                 f,
-                "{:<3} {:<6} : 0x{:0>8X}",
+                "{:<3} {:<4}: 0x{:0>8X}",
                 base_name, abi_name, self.regs[i]
             )?;
         }
