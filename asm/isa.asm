@@ -52,120 +52,58 @@
     HLT => le(0`10 @ 0`5 @ 0`5 @ 0`5 @ 0x2 @ 0b000)
     ERR => le(0`10 @ 0`5 @ 0`5 @ 0`5 @ 0x3 @ 0b000)
 
-    ADD  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x1 @ 0b001)
-    ADDC {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x2 @ 0b001)
-    SUB  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x3 @ 0b001)
-    SUBB {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x4 @ 0b001)
-    AND  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x5 @ 0b001)
-    OR   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x6 @ 0b001)
-    XOR  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x7 @ 0b001)
-    SHL  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x8 @ 0b001)
-    ASR  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x9 @ 0b001)
-    LSR  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0xA @ 0b001)
+    ADD   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x0 @ 0b001)
+    ADDC  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x1 @ 0b001)
+    SUB   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x2 @ 0b001)
+    SUBB  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x3 @ 0b001)
+    AND   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x4 @ 0b001)
+    OR    {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x5 @ 0b001)
+    XOR   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x6 @ 0b001)
+    SHL   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x7 @ 0b001)
+    ASR   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x8 @ 0b001)
+    LSR   {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0x9 @ 0b001)
+    MULL  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0xA @ 0b001)
+    MULH  {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0xB @ 0b001)
+    SMULL {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0xC @ 0b001)
+    SMULH {d: reg}, {l: reg}, {r: reg} => le(0`10 @ {r} @ {l} @ {d} @ 0xD @ 0b001)
 
-    ADD  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x1 @ 0b010)
-    ADDC {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x2 @ 0b010)
-    SUB  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x3 @ 0b010)
-    SUBB {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x4 @ 0b010)
-    AND  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x5 @ 0b010)
-    OR   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x6 @ 0b010)
-    XOR  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x7 @ 0b010)
-    SHL  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x8 @ 0b010)
-    ASR  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x9 @ 0b010)
-    LSR  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0xA @ 0b010)
+    ADD   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x0 @ 0b010)
+    ADDC  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x1 @ 0b010)
+    SUB   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x2 @ 0b010)
+    SUBB  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x3 @ 0b010)
+    AND   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x4 @ 0b010)
+    OR    {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x5 @ 0b010)
+    XOR   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x6 @ 0b010)
+    SHL   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x7 @ 0b010)
+    ASR   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x8 @ 0b010)
+    LSR   {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0x9 @ 0b010)
+    MULL  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0xA @ 0b010)
+    MULH  {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0xB @ 0b010)
+    SMULL {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0xC @ 0b010)
+    SMULH {d: reg}, {l: reg}, {v: imm} => le({v} @ {l} @ {d} @ 0xD @ 0b010)
 
-    ADD  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x1 @ 0b011)
-    ADDC {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x2 @ 0b011)
-    SUB  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x3 @ 0b011)
-    SUBB {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x4 @ 0b011)
-    AND  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x5 @ 0b011)
-    OR   {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x6 @ 0b011)
-    XOR  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x7 @ 0b011)
-    SHL  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x8 @ 0b011)
-    ASR  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0x9 @ 0b011)
-    LSR  {d: reg}, {v: imm}, {r: reg} => le({v} @ {r} @ {d} @ 0xA @ 0b011)
+    LD   {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x0 @ 0b011)
+    LD   {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x1 @ 0b011)
+    ST   [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0x2 @ 0b011)
+    ST   [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0x3 @ 0b011)
+    LD8  {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x4 @ 0b011)
+    LD8  {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x5 @ 0b011)
+    ST8  [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0x6 @ 0b011)
+    ST8  [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0x7 @ 0b011)
+    LD16 {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x8 @ 0b011)
+    LD16 {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x9 @ 0b011)
+    ST16 [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0xA @ 0b011)
+    ST16 [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0xB @ 0b011)
 
-    LD   {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x0 @ 0b100)
-    LD   {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x1 @ 0b100)
-    ST   [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0x2 @ 0b100)
-    ST   [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0x3 @ 0b100)
-    LD8  {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x4 @ 0b100)
-    LD8  {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x5 @ 0b100)
-    ST8  [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0x6 @ 0b100)
-    ST8  [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0x7 @ 0b100)
-    LD16 {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0x8 @ 0b100)
-    LD16 {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0x9 @ 0b100)
-    ST16 [{d: reg} + {o: reg}], {s: reg} => le(0`10 @ {o} @ {s} @ {d} @ 0xA @ 0b100)
-    ST16 [{d: reg} + {v: imm}], {s: reg} => le(       {v} @ {s} @ {d} @ 0xB @ 0b100)
+    LD8S  {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xC @ 0b011)
+    LD8S  {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xD @ 0b011)
+    LD16S {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xE @ 0b011)
+    LD16S {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xF @ 0b011)
 
-    LD8S  {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xC @ 0b100)
-    LD8S  {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xD @ 0b100)
-    LD16S {d: reg}, [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ {d} @ 0xE @ 0b100)
-    LD16S {d: reg}, [{s: reg} + {v: imm}] => le(       {v} @ {s} @ {d} @ 0xF @ 0b100)
-
-    JP.C    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x1 @ 0b101)
-    JP.Z    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x2 @ 0b101)
-    JP.S    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x3 @ 0b101)
-    JP.O    {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x4 @ 0b101)
-    JP.NC   {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x5 @ 0b101)
-    JP.NZ   {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x6 @ 0b101)
-    JP.NS   {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x7 @ 0b101)
-    JP.NO   {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x8 @ 0b101)
-    JP.U.LE {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0x9 @ 0b101)
-    JP.U.G  {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xA @ 0b101)
-    JP.S.L  {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xB @ 0b101)
-    JP.S.GE {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xC @ 0b101)
-    JP.S.LE {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xD @ 0b101)
-    JP.S.G  {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xE @ 0b101)
-    JMP     {s: reg} + {o: reg} => le(0`10 @ {o} @ {s} @ 0`5 @ 0xF @ 0b101)
-
-    JP.C    [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x1 @ 0b101)
-    JP.Z    [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x2 @ 0b101)
-    JP.S    [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x3 @ 0b101)
-    JP.O    [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x4 @ 0b101)
-    JP.NC   [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x5 @ 0b101)
-    JP.NZ   [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x6 @ 0b101)
-    JP.NS   [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x7 @ 0b101)
-    JP.NO   [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x8 @ 0b101)
-    JP.U.LE [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0x9 @ 0b101)
-    JP.U.G  [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xA @ 0b101)
-    JP.S.L  [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xB @ 0b101)
-    JP.S.GE [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xC @ 0b101)
-    JP.S.LE [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xD @ 0b101)
-    JP.S.G  [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xE @ 0b101)
-    JMP     [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 1`5 @ 0xF @ 0b101)
-
-    JP.C    {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x1 @ 0b101)
-    JP.Z    {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x2 @ 0b101)
-    JP.S    {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x3 @ 0b101)
-    JP.O    {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x4 @ 0b101)
-    JP.NC   {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x5 @ 0b101)
-    JP.NZ   {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x6 @ 0b101)
-    JP.NS   {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x7 @ 0b101)
-    JP.NO   {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x8 @ 0b101)
-    JP.U.LE {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0x9 @ 0b101)
-    JP.U.G  {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xA @ 0b101)
-    JP.S.L  {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xB @ 0b101)
-    JP.S.GE {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xC @ 0b101)
-    JP.S.LE {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xD @ 0b101)
-    JP.S.G  {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xE @ 0b101)
-    JMP     {s: reg} + {v: imm} => le({v} @ {s} @ 2`5 @ 0xF @ 0b101)
-
-    JP.C    [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x1 @ 0b101)
-    JP.Z    [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x2 @ 0b101)
-    JP.S    [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x3 @ 0b101)
-    JP.O    [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x4 @ 0b101)
-    JP.NC   [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x5 @ 0b101)
-    JP.NZ   [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x6 @ 0b101)
-    JP.NS   [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x7 @ 0b101)
-    JP.NO   [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x8 @ 0b101)
-    JP.U.LE [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0x9 @ 0b101)
-    JP.U.G  [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xA @ 0b101)
-    JP.S.L  [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xB @ 0b101)
-    JP.S.GE [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xC @ 0b101)
-    JP.S.LE [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xD @ 0b101)
-    JP.S.G  [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xE @ 0b101)
-    JMP     [{s: reg} + {v: imm}] => le({v} @ {s} @ 3`5 @ 0xF @ 0b101)
+    JMP {s: reg} + {o: reg}   => le(0`10 @ {o} @ {s} @ 0`5 @ 0x0 @ 0b100)
+    JMP {s: reg} + {v: imm}   => le(       {v} @ {s} @ 0`5 @ 0x1 @ 0b100)
+    JMP [{s: reg} + {o: reg}] => le(0`10 @ {o} @ {s} @ 0`5 @ 0x2 @ 0b100)
+    JMP [{s: reg} + {v: imm}] => le(       {v} @ {s} @ 0`5 @ 0x3 @ 0b100)
 
     BR.C    {v: rel} => le({v} @ 0`5 @ 4`5 @ 0x1 @ 0b101)
     BR.Z    {v: rel} => le({v} @ 0`5 @ 4`5 @ 0x2 @ 0b101)
@@ -200,18 +138,16 @@
 
     CMP {l: reg}, {r: reg} => asm { SUB zero, {l}, {r}}
     CMP {l: reg}, {v: i32} => asm { SUB zero, {l},  v }
-    CMP {v: i32}, {r: reg} => asm { SUB zero,  v , {r}}
 
     BIT {l: reg}, {r: reg} => asm { AND zero, {l}, {r}}
     BIT {l: reg}, {v: i32} => asm { AND zero, {l},  v }
-    BIT {v: i32}, {r: reg} => asm { AND zero,  v , {r}}
 
     TEST {s: reg} => asm { OR zero, {s}, zero }
 
     INC  {d: reg} => asm { ADD  {d}, {d}, 1 }
-    INCC {d: reg} => asm { ADDC {d}, {d}, zero }
+    INCC {d: reg} => asm { ADDC {d}, {d}, 0 }
     DEC  {d: reg} => asm { SUB  {d}, {d}, 1 }
-    DECB {d: reg} => asm { SUBB {d}, {d}, zero }
+    DECB {d: reg} => asm { SUBB {d}, {d}, 0 }
 
     NEG  {d: reg}, {s: reg} => asm { SUB  {d}, zero, {s} }
     NEGB {d: reg}, {s: reg} => asm { SUBB {d}, zero, {s} }
@@ -236,110 +172,15 @@
     LD16S {d: reg}, [{s: reg}] => asm { LD16S {d}, [{s} + zero] }
     LD16S {d: reg}, [{v: i32}] => asm { LD16S {d}, [zero + v] }
 
-    JP.EQ   {s: reg} + {o: reg} => asm { JP.Z  {s} + {o} }
-    JP.NEQ  {s: reg} + {o: reg} => asm { JP.NZ {s} + {o} }
-    JP.U.L  {s: reg} + {o: reg} => asm { JP.NC {s} + {o} }
-    JP.U.GE {s: reg} + {o: reg} => asm { JP.C  {s} + {o} }
-
-    JP.EQ   [{s: reg} + {o: reg}] => asm { JP.Z  [{s} + {o}] }
-    JP.NEQ  [{s: reg} + {o: reg}] => asm { JP.NZ [{s} + {o}] }
-    JP.U.L  [{s: reg} + {o: reg}] => asm { JP.NC [{s} + {o}] }
-    JP.U.GE [{s: reg} + {o: reg}] => asm { JP.C  [{s} + {o}] }
-
-    JP.EQ   {s: reg} + {v: u32} => asm { JP.Z  {s} + v }
-    JP.NEQ  {s: reg} + {v: u32} => asm { JP.NZ {s} + v }
-    JP.U.L  {s: reg} + {v: u32} => asm { JP.NC {s} + v }
-    JP.U.GE {s: reg} + {v: u32} => asm { JP.C  {s} + v }
-
-    JP.EQ   [{s: reg} + {v: u32}] => asm { JP.Z  [{s} + v] }
-    JP.NEQ  [{s: reg} + {v: u32}] => asm { JP.NZ [{s} + v] }
-    JP.U.L  [{s: reg} + {v: u32}] => asm { JP.NC [{s} + v] }
-    JP.U.GE [{s: reg} + {v: u32}] => asm { JP.C  [{s} + v] }
-
     BR.EQ   {v: u32} => asm { BR.Z  v }
     BR.NEQ  {v: u32} => asm { BR.NZ v }
     BR.U.L  {v: u32} => asm { BR.NC v }
     BR.U.GE {v: u32} => asm { BR.C  v }
 
-    JP.C    {s: reg} => asm { JP.C    {s} + zero }
-    JP.Z    {s: reg} => asm { JP.Z    {s} + zero }
-    JP.S    {s: reg} => asm { JP.S    {s} + zero }
-    JP.O    {s: reg} => asm { JP.O    {s} + zero }
-    JP.NC   {s: reg} => asm { JP.NC   {s} + zero }
-    JP.NZ   {s: reg} => asm { JP.NZ   {s} + zero }
-    JP.NS   {s: reg} => asm { JP.NS   {s} + zero }
-    JP.NO   {s: reg} => asm { JP.NO   {s} + zero }
-    JP.EQ   {s: reg} => asm { JP.Z    {s} + zero }
-    JP.NEQ  {s: reg} => asm { JP.NZ   {s} + zero }
-    JP.U.L  {s: reg} => asm { JP.NC   {s} + zero }
-    JP.U.GE {s: reg} => asm { JP.C    {s} + zero }
-    JP.U.LE {s: reg} => asm { JP.U.LE {s} + zero }
-    JP.U.G  {s: reg} => asm { JP.U.G  {s} + zero }
-    JP.S.L  {s: reg} => asm { JP.S.L  {s} + zero }
-    JP.S.GE {s: reg} => asm { JP.S.GE {s} + zero }
-    JP.S.LE {s: reg} => asm { JP.S.LE {s} + zero }
-    JP.S.G  {s: reg} => asm { JP.S.G  {s} + zero }
-    JMP     {s: reg} => asm { JMP     {s} + zero }
-
-    JP.C    [{s: reg}] => asm { JP.C    [{s} + zero] }
-    JP.Z    [{s: reg}] => asm { JP.Z    [{s} + zero] }
-    JP.S    [{s: reg}] => asm { JP.S    [{s} + zero] }
-    JP.O    [{s: reg}] => asm { JP.O    [{s} + zero] }
-    JP.NC   [{s: reg}] => asm { JP.NC   [{s} + zero] }
-    JP.NZ   [{s: reg}] => asm { JP.NZ   [{s} + zero] }
-    JP.NS   [{s: reg}] => asm { JP.NS   [{s} + zero] }
-    JP.NO   [{s: reg}] => asm { JP.NO   [{s} + zero] }
-    JP.EQ   [{s: reg}] => asm { JP.Z    [{s} + zero] }
-    JP.NEQ  [{s: reg}] => asm { JP.NZ   [{s} + zero] }
-    JP.U.L  [{s: reg}] => asm { JP.NC   [{s} + zero] }
-    JP.U.GE [{s: reg}] => asm { JP.C    [{s} + zero] }
-    JP.U.LE [{s: reg}] => asm { JP.U.LE [{s} + zero] }
-    JP.U.G  [{s: reg}] => asm { JP.U.G  [{s} + zero] }
-    JP.S.L  [{s: reg}] => asm { JP.S.L  [{s} + zero] }
-    JP.S.GE [{s: reg}] => asm { JP.S.GE [{s} + zero] }
-    JP.S.LE [{s: reg}] => asm { JP.S.LE [{s} + zero] }
-    JP.S.G  [{s: reg}] => asm { JP.S.G  [{s} + zero] }
-    JMP     [{s: reg}] => asm { JMP     [{s} + zero] }
-
-    JP.C    {v: u32} => asm { JP.C    zero + v }
-    JP.Z    {v: u32} => asm { JP.Z    zero + v }
-    JP.S    {v: u32} => asm { JP.S    zero + v }
-    JP.O    {v: u32} => asm { JP.O    zero + v }
-    JP.NC   {v: u32} => asm { JP.NC   zero + v }
-    JP.NZ   {v: u32} => asm { JP.NZ   zero + v }
-    JP.NS   {v: u32} => asm { JP.NS   zero + v }
-    JP.NO   {v: u32} => asm { JP.NO   zero + v }
-    JP.EQ   {v: u32} => asm { JP.Z    zero + v }
-    JP.NEQ  {v: u32} => asm { JP.NZ   zero + v }
-    JP.U.L  {v: u32} => asm { JP.NC   zero + v }
-    JP.U.GE {v: u32} => asm { JP.C    zero + v }
-    JP.U.LE {v: u32} => asm { JP.U.LE zero + v }
-    JP.U.G  {v: u32} => asm { JP.U.G  zero + v }
-    JP.S.L  {v: u32} => asm { JP.S.L  zero + v }
-    JP.S.GE {v: u32} => asm { JP.S.GE zero + v }
-    JP.S.LE {v: u32} => asm { JP.S.LE zero + v }
-    JP.S.G  {v: u32} => asm { JP.S.G  zero + v }
-    JMP     {v: u32} => asm { JMP     zero + v }
-
-    JP.C    [{v: u32}] => asm { JP.C    [zero + v] }
-    JP.Z    [{v: u32}] => asm { JP.Z    [zero + v] }
-    JP.S    [{v: u32}] => asm { JP.S    [zero + v] }
-    JP.O    [{v: u32}] => asm { JP.O    [zero + v] }
-    JP.NC   [{v: u32}] => asm { JP.NC   [zero + v] }
-    JP.NZ   [{v: u32}] => asm { JP.NZ   [zero + v] }
-    JP.NS   [{v: u32}] => asm { JP.NS   [zero + v] }
-    JP.NO   [{v: u32}] => asm { JP.NO   [zero + v] }
-    JP.EQ   [{v: u32}] => asm { JP.Z    [zero + v] }
-    JP.NEQ  [{v: u32}] => asm { JP.NZ   [zero + v] }
-    JP.U.L  [{v: u32}] => asm { JP.NC   [zero + v] }
-    JP.U.GE [{v: u32}] => asm { JP.C    [zero + v] }
-    JP.U.LE [{v: u32}] => asm { JP.U.LE [zero + v] }
-    JP.U.G  [{v: u32}] => asm { JP.U.G  [zero + v] }
-    JP.S.L  [{v: u32}] => asm { JP.S.L  [zero + v] }
-    JP.S.GE [{v: u32}] => asm { JP.S.GE [zero + v] }
-    JP.S.LE [{v: u32}] => asm { JP.S.LE [zero + v] }
-    JP.S.G  [{v: u32}] => asm { JP.S.G  [zero + v] }
-    JMP     [{v: u32}] => asm { JMP     [zero + v] }
+    JMP {s: reg}   => asm { JMP {s} + zero }
+    JMP {v: u32}   => asm { JMP zero + v }
+    JMP [{s: reg}] => asm { JMP [{s} + zero] }
+    JMP [{v: u32}] => asm { JMP [zero + v] }
 
     IN  {d: reg}, [{s: reg}] => asm { IN   {d}, [{s} + zero] }
     IN  {d: reg}, [{v: i32}] => asm { IN   {d}, [zero + v] }
@@ -522,7 +363,7 @@
         }
     }
 
-    RET {v: u12} => asm {
+    RET {v: u11} => asm {
         ADD sp, bp, (v`14 << 2)`14
         JMP ra
     }

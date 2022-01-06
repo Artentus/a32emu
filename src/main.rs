@@ -486,7 +486,7 @@ impl EventHandler<GameError> for EmuState {
 
             let mut mem_info = String::new();
             {
-                const MEMORY_OFFSET: usize = 0x011F_FF00;
+                const MEMORY_OFFSET: usize = 0x010F_FF00;
 
                 let mut addr: usize = MEMORY_OFFSET;
                 while addr < (MEMORY_OFFSET + 0x100) {

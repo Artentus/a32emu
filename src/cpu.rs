@@ -11,7 +11,6 @@ type Flag = bool;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AluOperation {
-    Addr,
     Add,
     Addc,
     Sub,
@@ -22,22 +21,29 @@ enum AluOperation {
     Shl,
     Asr,
     Lsr,
+    Mull,
+    Mulh,
+    Smull,
+    Smulh,
     None,
 }
 impl AluOperation {
     fn decode(op: Word) -> Self {
         match op & 0xF {
-            0x0 => Self::Addr,
-            0x1 => Self::Add,
-            0x2 => Self::Addc,
-            0x3 => Self::Sub,
-            0x4 => Self::Subb,
-            0x5 => Self::And,
-            0x6 => Self::Or,
-            0x7 => Self::Xor,
-            0x8 => Self::Shl,
-            0x9 => Self::Asr,
-            0xA => Self::Lsr,
+            0x0 => Self::Add,
+            0x1 => Self::Addc,
+            0x2 => Self::Sub,
+            0x3 => Self::Subb,
+            0x4 => Self::And,
+            0x5 => Self::Or,
+            0x6 => Self::Xor,
+            0x7 => Self::Shl,
+            0x8 => Self::Asr,
+            0x9 => Self::Lsr,
+            0xA => Self::Mull,
+            0xB => Self::Mulh,
+            0xC => Self::Smull,
+            0xD => Self::Smulh,
             _ => Self::None,
         }
     }
@@ -199,16 +205,6 @@ impl Instruction {
                 Self::Alu(inst)
             }
             0x3 => {
-                let inst = AluInstruction {
-                    op: AluOperation::decode(op),
-                    lhs: AluSource::Immediate,
-                    rhs: AluSource::Register(reg2),
-                    dst: reg1,
-                };
-
-                Self::Alu(inst)
-            }
-            0x4 => {
                 let is_imm = (op & 0x1) != 0;
                 let offset = if is_imm {
                     AluSource::Immediate
@@ -264,63 +260,54 @@ impl Instruction {
                     }
                 }
             }
-            0x5 => {
-                let jump_kind = reg1;
-
-                if (jump_kind & 0x4) == 0 {
-                    match jump_kind & 0x3 {
-                        0x0 => {
-                            let inst = JumpInstruction {
-                                con: JumpCondition::decode(op),
-                                base: AluSource::Register(reg2),
-                                offset: AluSource::Register(reg3),
-                                indirect: false,
-                            };
-
-                            Self::Jump(inst)
+            0x4 => {
+                let inst = match op & 0x3 {
+                    0x0 => {
+                        JumpInstruction {
+                            con: JumpCondition::Always,
+                            base: AluSource::Register(reg2),
+                            offset: AluSource::Register(reg3),
+                            indirect: false,
                         }
-                        0x1 => {
-                            let inst = JumpInstruction {
-                                con: JumpCondition::decode(op),
-                                base: AluSource::Register(reg2),
-                                offset: AluSource::Register(reg3),
-                                indirect: true,
-                            };
-
-                            Self::Jump(inst)
-                        }
-                        0x2 => {
-                            let inst = JumpInstruction {
-                                con: JumpCondition::decode(op),
-                                base: AluSource::Register(reg2),
-                                offset: AluSource::Immediate,
-                                indirect: false,
-                            };
-
-                            Self::Jump(inst)
-                        }
-                        0x3 => {
-                            let inst = JumpInstruction {
-                                con: JumpCondition::decode(op),
-                                base: AluSource::Register(reg2),
-                                offset: AluSource::Immediate,
-                                indirect: true,
-                            };
-
-                            Self::Jump(inst)
-                        }
-                        _ => unreachable!(),
                     }
-                } else {
-                    let inst = JumpInstruction {
-                        con: JumpCondition::decode(op),
-                        base: AluSource::ProgramCounter,
-                        offset: AluSource::Immediate,
-                        indirect: false,
-                    };
+                    0x1 => {
+                        JumpInstruction {
+                            con: JumpCondition::Always,
+                            base: AluSource::Register(reg2),
+                            offset: AluSource::Immediate,
+                            indirect: false,
+                        }
+                    }
+                    0x2 => {
+                        JumpInstruction {
+                            con: JumpCondition::Always,
+                            base: AluSource::Register(reg2),
+                            offset: AluSource::Register(reg3),
+                            indirect: true,
+                        }
+                    }
+                    0x3 => {
+                        JumpInstruction {
+                            con: JumpCondition::Always,
+                            base: AluSource::Register(reg2),
+                            offset: AluSource::Immediate,
+                            indirect: true,
+                        }
+                    }
+                    _ => unreachable!(),
+                };
 
-                    Self::Jump(inst)
-                }
+                Self::Jump(inst)
+            }
+            0x5 => {
+                let inst = JumpInstruction {
+                    con: JumpCondition::decode(op),
+                    base: AluSource::ProgramCounter,
+                    offset: AluSource::Immediate,
+                    indirect: false,
+                };
+
+                Self::Jump(inst)
             }
             0x6 => {
                 let is_imm = (op & 0x1) != 0;
@@ -454,34 +441,38 @@ impl Cpu {
         }
     }
 
-    fn exec_alu(&mut self, op: AluOperation, lhs: AluSource, rhs: AluSource) -> Word {
+    fn exec_alu(&mut self, op: AluOperation, lhs: AluSource, rhs: AluSource, set_flags: bool) -> Word {
         let lhs_val = self.read_source(lhs);
         let rhs_val = self.read_source(rhs);
+
+        let mut c: Flag = self.c;
+        let mut z: Flag = self.z;
+        let mut s: Flag = self.s;
+        let mut o: Flag = self.o;
 
         macro_rules! set_flags {
             ($lhs:expr, $rhs:expr, $result: ident) => {
                 let $result = $result as Word;
-                self.z = $result == 0;
-                self.s = ($result >> 31) != 0;
+                z = $result == 0;
+                s = ($result >> 31) != 0;
 
                 let lhs_s = ($lhs >> 31) != 0;
                 let rhs_s = ($rhs >> 31) != 0;
-                self.o = (lhs_s == rhs_s) && (self.s != lhs_s);
+                o = (lhs_s == rhs_s) && (s != lhs_s);
             };
         }
 
-        match op {
-            AluOperation::Addr => (Wrapping(lhs_val) + Wrapping(rhs_val)).0,
+        let result = match op {
             AluOperation::Add => {
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + 0;
-                self.c = (result >> 32) != 0;
+                c = (result >> 32) != 0;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Addc => {
-                let c = if self.c { 1 } else { 0 };
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + c;
-                self.c = (result >> 32) != 0;
+                let cv = if c { 1 } else { 0 };
+                let result = (lhs_val as DWord) + (rhs_val as DWord) + cv;
+                c = (result >> 32) != 0;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
@@ -489,51 +480,64 @@ impl Cpu {
                 let rhs_val = !rhs_val;
 
                 let result = (lhs_val as DWord) + (rhs_val as DWord) + 1;
-                self.c = (result >> 32) != 0;
+                c = (result >> 32) != 0;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Subb => {
                 let rhs_val = !rhs_val;
 
-                let c = if self.c { 1 } else { 0 };
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + c;
-                self.c = (result >> 32) != 0;
+                let cv = if c { 1 } else { 0 };
+                let result = (lhs_val as DWord) + (rhs_val as DWord) + cv;
+                c = (result >> 32) != 0;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::And => {
                 let result = lhs_val & rhs_val;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
             AluOperation::Or => {
                 let result = lhs_val | rhs_val;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
             AluOperation::Xor => {
                 let result = lhs_val ^ rhs_val;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
             AluOperation::Shl => {
                 let result = lhs_val << rhs_val;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
             AluOperation::Asr => {
                 let result = ((lhs_val as SWord) >> rhs_val) as Word;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
             AluOperation::Lsr => {
                 let result = lhs_val >> rhs_val;
-                self.z = result == 0;
+                z = result == 0;
                 result
             }
+            AluOperation::Mull => todo!(),
+            AluOperation::Mulh => todo!(),
+            AluOperation::Smull => todo!(),
+            AluOperation::Smulh => todo!(),
             AluOperation::None => 0,
+        };
+
+        if set_flags {
+            self.c = c;
+            self.z = z;
+            self.s = s;
+            self.o = o;
         }
+
+        result
     }
 
     fn jump(&mut self, dst: Word, con: JumpCondition) {
@@ -581,13 +585,13 @@ impl Cpu {
             Instruction::Hlt => ClockResult::Halt,
             Instruction::Err => ClockResult::Error,
             Instruction::Alu(inst) => {
-                let result = self.exec_alu(inst.op, inst.lhs, inst.rhs);
+                let result = self.exec_alu(inst.op, inst.lhs, inst.rhs, true);
                 self.write_reg(inst.dst, result);
 
                 ClockResult::Continue
             }
             Instruction::Load(inst) => {
-                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset, false) as usize;
                 let value = if self.k || (addr >= 0x01000000) {
                     match inst.mode {
                         MemoryMode::Bits32 => mem.read32(addr) as Word,
@@ -617,7 +621,7 @@ impl Cpu {
                 ClockResult::Continue
             }
             Instruction::Store(inst) => {
-                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset, false) as usize;
                 if self.k || (addr >= 0x01000000) {
                     let value = self.read_reg(inst.src);
                     match inst.mode {
@@ -630,7 +634,7 @@ impl Cpu {
                 ClockResult::Continue
             }
             Instruction::Jump(inst) => {
-                let mut addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset);
+                let mut addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset, false);
                 if inst.indirect {
                     addr = mem.read32(addr as usize) as Word
                 }
@@ -640,7 +644,7 @@ impl Cpu {
             }
             Instruction::In(inst) => {
                 let value = if self.k {
-                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset, false) as usize;
                     io.read(addr)
                 } else {
                     0
@@ -652,7 +656,7 @@ impl Cpu {
             }
             Instruction::Out(inst) => {
                 if self.k {
-                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset) as usize;
+                    let addr = self.exec_alu(AluOperation::Addr, inst.base, inst.offset, false) as usize;
                     let value = self.read_reg(inst.src);
                     io.write(addr, value);
                 }
