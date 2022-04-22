@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::num::Wrapping;
 
 const REG_COUNT: usize = 32;
-const SYSCALL_ADDRESS: Word = 0x00000FF0;
+const SYSCALL_ADDRESS: Word = 0x00_007FF0;
 
 type Register = u8;
 type Flag = bool;
