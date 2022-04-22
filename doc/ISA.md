@@ -65,8 +65,8 @@
 | `OR      d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_0101_001` | `d = l \| r` |
 | `XOR     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_0110_001` | `d = l ^ r` |
 | `SHL     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_0111_001` | `d = l << r` |
-| `ASR     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1000_001` | `d = l >>> r` |
-| `LSR     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1001_001` | `d = l >> r` |
+| `LSR     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1000_001` | `d = l >>> r` |
+| `ASR     d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1001_001` | `d = l >> r` |
 | `MULL    d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1010_001` | `d = (l * r)[0..31]` |
 | `MULH    d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1011_001` | `d = (l * r)[32..63]` |
 | `SMULL   d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1100_001` | `d = (l * r)[0..31]` |
@@ -80,8 +80,8 @@
 | `OR      d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_0101_010` | `d = l \| v` |
 | `XOR     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_0110_010` | `d = l ^ v` |
 | `SHL     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_0111_010` | `d = l << v` |
-| `ASR     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1000_010` | `d = l >>> v` |
-| `LSR     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1001_010` | `d = l >> v` |
+| `LSR     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1000_010` | `d = l >>> v` |
+| `ASR     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1001_010` | `d = l >> v` |
 | `MULL    d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1010_010` | `d = (l * v)[0..31]` |
 | `MULH    d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1011_010` | `d = (l * v)[32..63]` |
 | `SMULL   d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1100_010` | `d = (l * v)[0..31]` |

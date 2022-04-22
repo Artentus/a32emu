@@ -1,14 +1,13 @@
 use crate::{borrow_shared, SharedRef, Word};
-use align_data::include_transmute;
 use lru::LruCache;
+use std::borrow::Cow;
 use std::collections::VecDeque;
+use std::io::{Cursor, Read};
 use std::num::Wrapping;
 
-pub const ROM_SIZE: usize = 0x1000;
-pub const RAM_SIZE: usize = 0x1000000;
+const KERNEL_ROM: &[u8] = include_bytes!("../res/kernel_rom.bin");
 
-static KERNEL_ROM: [u32; ROM_SIZE / 4] = unsafe { include_transmute!("../res/kernel_rom.bin") };
-
+#[inline]
 fn transmute_with_len<'a, I, O>(slice: &'a [I]) -> &'a [O] {
     let in_size = std::mem::size_of::<I>();
     let out_size = std::mem::size_of::<O>();
@@ -17,6 +16,7 @@ fn transmute_with_len<'a, I, O>(slice: &'a [I]) -> &'a [O] {
     unsafe { std::slice::from_raw_parts(ptr as *const O, slice.len() * in_size / out_size) }
 }
 
+#[inline]
 fn transmute_with_len_mut<'a, I, O>(slice: &'a mut [I]) -> &'a mut [O] {
     let in_size = std::mem::size_of::<I>();
     let out_size = std::mem::size_of::<O>();
@@ -25,91 +25,93 @@ fn transmute_with_len_mut<'a, I, O>(slice: &'a mut [I]) -> &'a mut [O] {
     unsafe { std::slice::from_raw_parts_mut(ptr as *mut O, slice.len() * in_size / out_size) }
 }
 
-macro_rules! read {
-    ($t: ty, $mem: expr, $addr: expr) => {{
+macro_rules! read_mem {
+    ($t:ty, $mem:expr, $addr:expr) => {{
         let mem_t: &[$t] = transmute_with_len($mem);
-
-        <$t>::from_le(mem_t[$addr])
+        let addr = $addr / std::mem::size_of::<$t>();
+        <$t>::from_le(mem_t[addr])
     }};
 }
 
-macro_rules! write {
-    ($t: ty, $mem: expr, $addr: expr, $value: expr) => {{
+macro_rules! write_mem {
+    ($t:ty, $mem:expr, $addr:expr, $value:expr) => {{
         let mem_t: &mut [$t] = transmute_with_len_mut($mem);
-
-        mem_t[$addr] = $value.to_le();
+        let addr = $addr / std::mem::size_of::<$t>();
+        mem_t[addr] = $value.to_le();
     }};
-}
-
-pub struct Rom {
-    mem: &'static [u32],
-}
-impl Rom {
-    #[inline]
-    pub fn new(mem: &'static [u32]) -> Self {
-        Self { mem }
-    }
-
-    #[inline]
-    pub fn read32(&self, addr: usize) -> u32 {
-        read!(u32, self.mem, (addr % ROM_SIZE) >> 2)
-    }
-
-    #[inline]
-    pub fn read16(&self, addr: usize) -> u16 {
-        read!(u16, self.mem, (addr % ROM_SIZE) >> 1)
-    }
-
-    #[inline]
-    pub fn read8(&self, addr: usize) -> u8 {
-        read!(u8, self.mem, (addr % ROM_SIZE) >> 0)
-    }
-}
-impl Default for Rom {
-    fn default() -> Self {
-        Self { mem: &KERNEL_ROM }
-    }
 }
 
 pub struct Ram {
+    size: usize,
     mem: Box<[u32]>,
 }
 impl Ram {
     #[inline]
-    pub fn new() -> Self {
+    pub fn new_zeroed(size: usize) -> Self {
         Self {
-            mem: vec![0; RAM_SIZE / 4].into_boxed_slice(),
+            size,
+            mem: unsafe { Box::new_zeroed_slice(size / 4).assume_init() },
         }
+    }
+
+    pub fn new_init(size: usize, mut mem: Vec<u32>) -> Self {
+        assert!(mem.len() <= (size / 4));
+
+        while mem.len() < (size / 4) {
+            mem.push(0);
+        }
+
+        Self {
+            size,
+            mem: mem.into_boxed_slice(),
+        }
+    }
+
+    pub fn new_default_kernel(size: usize) -> Self {
+        assert!(KERNEL_ROM.len() <= size);
+
+        let mut mem = Vec::with_capacity(size / 4);
+        let mut cursor = Cursor::new(KERNEL_ROM);
+
+        loop {
+            let mut bytes: [u8; 4] = [0; 4];
+            match cursor.read_exact(&mut bytes) {
+                Ok(_) => mem.push(u32::from_ne_bytes(bytes)),
+                Err(_) => break,
+            }
+        }
+
+        Self::new_init(size, mem)
     }
 
     #[inline]
     pub fn read32(&self, addr: usize) -> u32 {
-        read!(u32, self.mem.as_ref(), (addr % RAM_SIZE) >> 2)
+        read_mem!(u32, self.mem.as_ref(), addr % self.size)
     }
 
     #[inline]
     pub fn read16(&self, addr: usize) -> u16 {
-        read!(u16, self.mem.as_ref(), (addr % RAM_SIZE) >> 1)
+        read_mem!(u16, self.mem.as_ref(), addr % self.size)
     }
 
     #[inline]
     pub fn read8(&self, addr: usize) -> u8 {
-        read!(u8, self.mem.as_ref(), (addr % RAM_SIZE) >> 0)
+        read_mem!(u8, self.mem.as_ref(), addr % self.size)
     }
 
     #[inline]
     pub fn write32(&mut self, addr: usize, value: u32) {
-        write!(u32, self.mem.as_mut(), (addr % RAM_SIZE) >> 2, value);
+        write_mem!(u32, self.mem.as_mut(), addr % self.size, value);
     }
 
     #[inline]
     pub fn write16(&mut self, addr: usize, value: u16) {
-        write!(u16, self.mem.as_mut(), (addr % RAM_SIZE) >> 1, value);
+        write_mem!(u16, self.mem.as_mut(), addr % self.size, value);
     }
 
     #[inline]
     pub fn write8(&mut self, addr: usize, value: u8) {
-        write!(u8, self.mem.as_mut(), (addr % RAM_SIZE) >> 0, value);
+        write_mem!(u8, self.mem.as_mut(), addr % self.size, value);
     }
 }
 
@@ -119,93 +121,120 @@ pub enum CopyDirection {
     Backward,
 }
 
+const KRAM_SIZE: usize = 0x8000; // 15 bit
+const SRAM_SIZE: usize = 0x100000; // 20 bit
+
+const KRAM_BANK: u8 = 0x00;
+const SRAM_BANK: u8 = 0x00;
+
+macro_rules! read_k {
+    ($kram:expr, $read:ident, $addr:expr, $k:expr) => {
+        if $k {
+            $kram.$read($addr)
+        } else {
+            0
+        }
+    };
+}
+
+macro_rules! write_k {
+    ($kram:expr, $write:ident, $addr:expr, $value:expr, $k:expr) => {
+        if $k {
+            $kram.$write($addr, $value);
+        }
+    };
+}
+
 pub struct MemoryBus {
-    pub rom: Rom,
-    pub ram: Ram,
+    pub kram: Ram,
+    pub sram: Ram,
 }
 impl MemoryBus {
-    pub fn new(rom: Option<&'static [u32]>) -> Self {
+    pub fn new(rom: Option<Vec<u32>>) -> Self {
         if let Some(rom) = rom {
             Self {
-                rom: Rom::new(rom),
-                ram: Ram::new(),
+                kram: Ram::new_init(KRAM_SIZE, rom),
+                sram: Ram::new_zeroed(SRAM_SIZE),
             }
         } else {
             Self {
-                rom: Rom::default(),
-                ram: Ram::new(),
+                kram: Ram::new_default_kernel(KRAM_SIZE),
+                sram: Ram::new_zeroed(SRAM_SIZE),
             }
         }
     }
 
-    pub fn read32(&self, addr: usize) -> u32 {
+    pub fn read32(&self, addr: usize, k_flag: bool) -> u32 {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x00 => self.rom.read32(addr),
-            0x01 => self.ram.read32(addr),
+            KRAM_BANK => read_k!(self.kram, read32, addr, k_flag),
+            SRAM_BANK => self.sram.read32(addr),
             _ => 0,
         }
     }
 
-    pub fn read16(&self, addr: usize) -> u16 {
+    pub fn read16(&self, addr: usize, k_flag: bool) -> u16 {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x00 => self.rom.read16(addr),
-            0x01 => self.ram.read16(addr),
+            KRAM_BANK => read_k!(self.kram, read16, addr, k_flag),
+            SRAM_BANK => self.sram.read16(addr),
             _ => 0,
         }
     }
 
-    pub fn read8(&self, addr: usize) -> u8 {
+    pub fn read8(&self, addr: usize, k_flag: bool) -> u8 {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x00 => self.rom.read8(addr),
-            0x01 => self.ram.read8(addr),
+            KRAM_BANK => read_k!(self.kram, read8, addr, k_flag),
+            SRAM_BANK => self.sram.read8(addr),
             _ => 0,
         }
     }
 
-    pub fn write32(&mut self, addr: usize, value: u32) {
+    pub fn write32(&mut self, addr: usize, value: u32, k_flag: bool) {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x01 => self.ram.write32(addr, value),
+            KRAM_BANK => write_k!(self.kram, write32, addr, value, k_flag),
+            SRAM_BANK => self.sram.write32(addr, value),
             _ => {}
         }
     }
 
-    pub fn write16(&mut self, addr: usize, value: u16) {
+    pub fn write16(&mut self, addr: usize, value: u16, k_flag: bool) {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x01 => self.ram.write16(addr, value),
+            KRAM_BANK => write_k!(self.kram, write16, addr, value, k_flag),
+            SRAM_BANK => self.sram.write16(addr, value),
             _ => {}
         }
     }
 
-    pub fn write8(&mut self, addr: usize, value: u8) {
+    pub fn write8(&mut self, addr: usize, value: u8, k_flag: bool) {
         let msb = (addr >> 24) as u8;
         match msb {
-            0x01 => self.ram.write8(addr, value),
+            KRAM_BANK => write_k!(self.kram, write8, addr, value, k_flag),
+            SRAM_BANK => self.sram.write8(addr, value),
             _ => {}
         }
     }
 
-    pub fn copy(&mut self, src: usize, dst: usize, len: usize, dir: CopyDirection) {
+    pub fn copy(&mut self, src: usize, dst: usize, len: usize, dir: CopyDirection, k_flag: bool) {
         let mut src = Wrapping(src);
         let mut dst = Wrapping(dst);
         let mut len = len;
 
         while len > 0 {
-            let value = self.read32(src.0);
-            self.write32(dst.0, value);
+            let value = self.read32(src.0, k_flag);
+            self.write32(dst.0, value, k_flag);
 
             match dir {
                 CopyDirection::Forward => {
-                    src += Wrapping(4);
-                    dst += Wrapping(4);
+                    src += Wrapping(std::mem::size_of::<u32>());
+                    dst += Wrapping(std::mem::size_of::<u32>());
                 }
                 CopyDirection::Backward => {
-                    src -= Wrapping(4);
-                    dst -= Wrapping(4);
+                    src -= Wrapping(std::mem::size_of::<u32>());
+                    dst -= Wrapping(std::mem::size_of::<u32>());
                 }
             }
 
@@ -302,21 +331,27 @@ impl IoBus {
         }
     }
 
-    pub fn read(&mut self, addr: usize) -> Word {
-        if let Some(index) = self.get_mapping(addr) {
-            let mapping = self.mappings.get(index).expect("Cache desync");
-            let device_addr = calc_device_addr(mapping, addr);
-            borrow_shared(&mapping.device).read(device_addr)
+    pub fn read(&mut self, addr: usize, k_flag: bool) -> Word {
+        if k_flag {
+            if let Some(index) = self.get_mapping(addr) {
+                let mapping = self.mappings.get(index).expect("Cache desync");
+                let device_addr = calc_device_addr(mapping, addr);
+                borrow_shared(&mapping.device).read(device_addr)
+            } else {
+                0
+            }
         } else {
             0
         }
     }
 
-    pub fn write(&mut self, addr: usize, value: Word) {
-        if let Some(index) = self.get_mapping(addr) {
-            let mapping = self.mappings.get(index).expect("Cache desync");
-            let device_addr = calc_device_addr(mapping, addr);
-            borrow_shared(&mapping.device).write(device_addr, value);
+    pub fn write(&mut self, addr: usize, value: Word, k_flag: bool) {
+        if k_flag {
+            if let Some(index) = self.get_mapping(addr) {
+                let mapping = self.mappings.get(index).expect("Cache desync");
+                let device_addr = calc_device_addr(mapping, addr);
+                borrow_shared(&mapping.device).write(device_addr, value);
+            }
         }
     }
 }

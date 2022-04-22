@@ -1,4 +1,5 @@
 #![feature(cow_is_borrowed)]
+#![feature(new_uninit)]
 
 mod cpu;
 mod device;
@@ -31,7 +32,7 @@ const SCREEN_WIDTH: u16 = 640;
 const SCREEN_HEIGHT: u16 = 480;
 const SCREEN_SCALE: f32 = 2.0;
 
-const CLOCK_RATE: f64 = 50_000_000.0; // 50 MHz
+const CLOCK_RATE: f64 = 50_000_000.0; // 50 MHz, clock rate is not comparable to hardware because the emulator is not cycle accurate
 const FRAME_RATE: f64 = 60.0;
 const CYCLES_PER_FRAME: f64 = CLOCK_RATE / FRAME_RATE;
 const WHOLE_CYCLES_PER_FRAME: u64 = CYCLES_PER_FRAME as u64;
@@ -40,6 +41,7 @@ const FRACT_CYCLES_PER_FRAME: f64 = CYCLES_PER_FRAME - (WHOLE_CYCLES_PER_FRAME a
 type Word = u32; // Word size of the CPU
 type SWord = i32; // The word size of the CPU as signed (for sign extension)
 type DWord = u64; // Double the word size of the CPU (for ALU carry)
+type SDWord = i64; // Signed double word
 
 type SharedRef<T> = Rc<RefCell<T>>;
 
@@ -146,7 +148,7 @@ struct HeadlessState {
     utf8_builder: Utf8Builder,
 }
 impl HeadlessState {
-    fn new(rom: Option<&'static [u32]>) -> Self {
+    fn new(rom: Option<Vec<u32>>) -> Self {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -165,13 +167,17 @@ impl HeadlessState {
     }
 
     fn clock(&mut self) -> ClockResult {
-        let result = { self.cpu.clock(&mut self.mem_bus, &mut self.io_bus) };
+        let (result, k_flag) = {
+            let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
+            let k_flag = self.cpu.k();
+            (result, k_flag)
+        };
 
         {
             let mut dma = borrow_shared(&self.dma);
             if dma.run {
                 self.mem_bus
-                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
+                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir(), k_flag);
                 dma.run = false;
             }
         }
@@ -208,7 +214,7 @@ struct EmuState {
     loop_helper: LoopHelper,
 }
 impl EmuState {
-    fn new(rom: Option<&'static [u32]>, font: Font) -> GameResult<Self> {
+    fn new(rom: Option<Vec<u32>>, font: Font) -> GameResult<Self> {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -313,7 +319,7 @@ impl EmuState {
     }
 
     fn clock(&mut self) {
-        {
+        let k_flag = {
             let result = self.cpu.clock(&mut self.mem_bus, &mut self.io_bus);
             match result {
                 ClockResult::Break => self.running = false,
@@ -327,13 +333,15 @@ impl EmuState {
                 }
                 _ => {}
             }
-        }
+
+            self.cpu.k()
+        };
 
         {
             let mut dma = borrow_shared(&self.dma);
             if dma.run {
                 self.mem_bus
-                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir());
+                    .copy(dma.src(), dma.dst(), dma.len(), dma.dir(), k_flag);
                 dma.run = false;
             }
         }
@@ -451,12 +459,12 @@ impl EventHandler<GameError> for EmuState {
 
                 let mut addr = start;
                 while addr > end {
-                    let value = self.mem_bus.read32(addr);
+                    let value = self.mem_bus.read32(addr, true);
                     stack_info.push_str(&format!("             0x{:0>8X}\n", value));
                     addr -= 4;
                 }
 
-                let value = self.mem_bus.read32(addr);
+                let value = self.mem_bus.read32(addr, true);
                 stack_info.push_str(&format!("{:0>8X} >   0x{:0>8X}", addr, value));
             }
             let stack_info_frag = TextFragment::new(stack_info)
@@ -494,7 +502,7 @@ impl EventHandler<GameError> for EmuState {
 
                     let mut text = String::new();
                     for _ in 0..8 {
-                        let value = self.mem_bus.read32(addr);
+                        let value = self.mem_bus.read32(addr, true);
                         mem_info.push_str(&format!("{:0>8X} ", value));
 
                         let ascii = value.to_le_bytes();
@@ -507,7 +515,7 @@ impl EventHandler<GameError> for EmuState {
                             };
                             text.push(c);
                         }
-                        
+
                         addr += 4;
                     }
 
@@ -618,30 +626,20 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .opt_get_default("max-cycles", DEFAULT_MAX_CYCLES)
         .unwrap_or(DEFAULT_MAX_CYCLES);
 
-    let rom: Option<&'static [u32]> = match matches.opt_str("rom") {
+    let rom: Option<Vec<u32>> = match matches.opt_str("rom") {
         Some(path) => {
             let mut rom_file = std::fs::File::open(path)?;
-            static mut ROM_VEC: Vec<u32> = Vec::new();
+            let mut rom_vec: Vec<u32> = Vec::new();
 
             loop {
                 let mut buffer: [u8; 4] = [0; 4];
                 match rom_file.read_exact(&mut buffer) {
-                    Ok(_) => unsafe { ROM_VEC.push(u32::from_ne_bytes(buffer)) },
+                    Ok(_) => rom_vec.push(u32::from_ne_bytes(buffer)),
                     Err(_) => break,
                 }
             }
 
-            unsafe {
-                if ROM_VEC.len() > (device::ROM_SIZE / 4) {
-                    Err("ROM file is too large")?;
-                }
-
-                while ROM_VEC.len() < (device::ROM_SIZE / 4) {
-                    ROM_VEC.push(0);
-                }
-            }
-
-            Some(unsafe { &ROM_VEC })
+            Some(rom_vec)
         }
         None => None,
     };
