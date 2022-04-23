@@ -1,5 +1,6 @@
 #![feature(cow_is_borrowed)]
 #![feature(new_uninit)]
+#![feature(int_roundings)]
 
 mod cpu;
 mod device;
@@ -28,8 +29,8 @@ const TITLE: &str = "a32emu";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
 
-const SCREEN_WIDTH: u16 = 640;
-const SCREEN_HEIGHT: u16 = 480;
+const SCREEN_WIDTH: u16 = 800;
+const SCREEN_HEIGHT: u16 = 600;
 const SCREEN_SCALE: f32 = 2.0;
 
 const CLOCK_RATE: f64 = 50_000_000.0; // 50 MHz, clock rate is not comparable to hardware because the emulator is not cycle accurate
@@ -203,6 +204,7 @@ struct EmuState {
     uart: SharedRef<UartController>,
     mem_bus: MemoryBus,
     io_bus: IoBus,
+    framebuffer: Framebuffer<{ SCREEN_WIDTH as usize }, { SCREEN_HEIGHT as usize }>,
 
     stdout: Stdout,
     utf8_builder: Utf8Builder,
@@ -236,13 +238,14 @@ impl EmuState {
             uart,
             mem_bus: MemoryBus::new(rom),
             io_bus,
+            framebuffer: Framebuffer::new(),
 
             stdout,
             utf8_builder: Utf8Builder::new(),
             font,
             running: false,
             halted: false,
-            show_debug_info: true,
+            show_debug_info: false,
             fractional_cycles: 0.0,
             loop_helper: LoopHelper::builder()
                 .native_accuracy_ns(1_500_000)
@@ -416,6 +419,26 @@ impl EventHandler<GameError> for EmuState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, Color::BLACK);
 
+        {
+            self.mem_bus.draw_framebuffer(&mut self.framebuffer, 0, 0);
+            let framebuffer_pixels = self.framebuffer.as_pixels();
+
+            let mut screen =
+                Image::from_rgba8(ctx, SCREEN_WIDTH, SCREEN_HEIGHT, framebuffer_pixels)?;
+            let filter = if SCREEN_SCALE.fract() == 0.0 {
+                FilterMode::Nearest
+            } else {
+                FilterMode::Linear
+            };
+            screen.set_filter(filter);
+            screen.set_wrap(WrapMode::Clamp, WrapMode::Clamp);
+
+            let params = DrawParam::default()
+                .dest([0.0, 0.0])
+                .scale([SCREEN_SCALE, SCREEN_SCALE]);
+            graphics::draw(ctx, &screen, params)?;
+        }
+
         if self.show_debug_info {
             const TEXT_SCALE: PxScale = PxScale { x: 20.0, y: 20.0 };
             const TEXT_BACK_COLOR: graphics::Color = graphics::Color::new(0.0, 0.0, 0.0, 1.0);
@@ -494,7 +517,7 @@ impl EventHandler<GameError> for EmuState {
 
             let mut mem_info = String::new();
             {
-                const MEMORY_OFFSET: usize = 0x010F_FF00;
+                const MEMORY_OFFSET: usize = 0x00_007700;
 
                 let mut addr: usize = MEMORY_OFFSET;
                 while addr < (MEMORY_OFFSET + 0x100) {
