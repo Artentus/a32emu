@@ -433,7 +433,7 @@ impl EventHandler<GameError> for EmuState {
             screen.set_wrap(WrapMode::Clamp, WrapMode::Clamp);
 
             let params = DrawParam::default()
-                .dest([0.0, 0.0])
+                .dest([2.0, 2.0])
                 .scale([SCREEN_SCALE, SCREEN_SCALE]);
             graphics::draw(ctx, &screen, params)?;
         }
@@ -691,8 +691,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             .srgb(true)
             .samples(NumSamples::One);
         let window_mode = WindowMode::default().dimensions(
-            (SCREEN_WIDTH as f32) * SCREEN_SCALE,
-            (SCREEN_HEIGHT as f32) * SCREEN_SCALE,
+            (SCREEN_WIDTH as f32) * SCREEN_SCALE + 4.0,
+            (SCREEN_HEIGHT as f32) * SCREEN_SCALE + 4.0,
         );
         let builder = ContextBuilder::new(TITLE, AUTHOR)
             .window_setup(window_setup)
