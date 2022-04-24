@@ -178,8 +178,8 @@
 | `LD16S   d, [s]   ` | `LD16S d, [s + zero]     ` |
 | `LD16S   d, [v]   ` | `LD16S d, [zero + v]     ` |
 |                     |                            |
-| `BR.E    v        ` | `BR.Z  v                 ` |
-| `BR.NE   v        ` | `BR.NZ v                 ` |
+| `BR.EQ   v        ` | `BR.Z  v                 ` |
+| `BR.NEQ  v        ` | `BR.NZ v                 ` |
 | `BR.U.L  v        ` | `BR.NC v                 ` |
 | `BR.U.GE v        ` | `BR.C  v                 ` |
 |                     |                            |
