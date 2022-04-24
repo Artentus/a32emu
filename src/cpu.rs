@@ -1,5 +1,5 @@
 use crate::device::{IoBus, MemoryBus};
-use crate::{DWord, SDWord, SWord, Word};
+use crate::{SWord, Word};
 use std::fmt::Display;
 use std::num::Wrapping;
 
@@ -21,10 +21,10 @@ enum AluOperation {
     Shl,
     Lsr,
     Asr,
-    Mull,
-    Mulh,
-    Smull,
-    Smulh,
+    Mul,
+    Mulhuu,
+    Mulhss,
+    Mulhsu,
     None,
 }
 impl AluOperation {
@@ -40,10 +40,10 @@ impl AluOperation {
             0x7 => Self::Shl,
             0x8 => Self::Lsr,
             0x9 => Self::Asr,
-            0xA => Self::Mull,
-            0xB => Self::Mulh,
-            0xC => Self::Smull,
-            0xD => Self::Smulh,
+            0xA => Self::Mul,
+            0xB => Self::Mulhuu,
+            0xC => Self::Mulhss,
+            0xD => Self::Mulhsu,
             _ => Self::None,
         }
     }
@@ -480,7 +480,6 @@ impl Cpu {
 
         macro_rules! set_flags {
             ($lhs:expr, $rhs:expr, $result: ident) => {
-                let $result = $result as Word;
                 z = $result == 0;
                 s = ($result >> 31) != 0;
 
@@ -492,32 +491,28 @@ impl Cpu {
 
         let result = match op {
             AluOperation::Add => {
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + 0;
-                c = (result >> 32) != 0;
+                let (result, c_out) = lhs_val.carrying_add(rhs_val, false);
+                c = c_out;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Addc => {
-                let cv = if c { 1 } else { 0 };
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + cv;
-                c = (result >> 32) != 0;
+                let (result, c_out) = lhs_val.carrying_add(rhs_val, c);
+                c = c_out;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Sub => {
                 let rhs_val = !rhs_val;
-
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + 1;
-                c = (result >> 32) != 0;
+                let (result, c_out) = lhs_val.carrying_add(rhs_val, true);
+                c = c_out;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
             AluOperation::Subb => {
                 let rhs_val = !rhs_val;
-
-                let cv = if c { 1 } else { 0 };
-                let result = (lhs_val as DWord) + (rhs_val as DWord) + cv;
-                c = (result >> 32) != 0;
+                let (result, c_out) = lhs_val.carrying_add(rhs_val, c);
+                c = c_out;
                 set_flags!(lhs_val, rhs_val, result);
                 result
             }
@@ -551,26 +546,24 @@ impl Cpu {
                 z = result == 0;
                 result
             }
-            AluOperation::Mull => {
-                let full = (lhs_val as DWord) * (rhs_val as DWord);
-                let result = full as Word;
+            AluOperation::Mul => {
+                let result = lhs_val.widening_mul(rhs_val).0;
                 z = result == 0;
                 result
             }
-            AluOperation::Mulh => {
-                let full = (lhs_val as DWord) * (rhs_val as DWord);
+            AluOperation::Mulhuu => {
+                let result = lhs_val.widening_mul(rhs_val).1;
+                z = result == 0;
+                result
+            }
+            AluOperation::Mulhss => {
+                let full = ((lhs_val as SWord) as i64) * ((rhs_val as SWord) as i64);
                 let result = (full >> 32) as Word;
                 z = result == 0;
                 result
             }
-            AluOperation::Smull => {
-                let full = ((lhs_val as SWord) as SDWord) * ((rhs_val as SWord) as SDWord);
-                let result = full as Word;
-                z = result == 0;
-                result
-            }
-            AluOperation::Smulh => {
-                let full = ((lhs_val as SWord) as SDWord) * ((rhs_val as SWord) as SDWord);
+            AluOperation::Mulhsu => {
+                let full = ((lhs_val as SWord) as i64) * (rhs_val as i64);
                 let result = (full >> 32) as Word;
                 z = result == 0;
                 result

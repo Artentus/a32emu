@@ -1,6 +1,7 @@
 #![feature(cow_is_borrowed)]
 #![feature(new_uninit)]
 #![feature(int_roundings)]
+#![feature(bigint_helper_methods)]
 
 mod cpu;
 mod device;
@@ -41,8 +42,6 @@ const FRACT_CYCLES_PER_FRAME: f64 = CYCLES_PER_FRAME - (WHOLE_CYCLES_PER_FRAME a
 
 type Word = u32; // Word size of the CPU
 type SWord = i32; // The word size of the CPU as signed (for sign extension)
-type DWord = u64; // Double the word size of the CPU (for ALU carry)
-type SDWord = i64; // Signed double word
 
 type SharedRef<T> = Rc<RefCell<T>>;
 
