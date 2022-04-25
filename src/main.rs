@@ -34,7 +34,7 @@ const SCREEN_WIDTH: u16 = 800;
 const SCREEN_HEIGHT: u16 = 600;
 const SCREEN_SCALE: f32 = 2.0;
 
-const CLOCK_RATE: f64 = 50_000_000.0; // 50 MHz, clock rate is not comparable to hardware because the emulator is not cycle accurate
+const CLOCK_RATE: f64 = 20_000_000.0; // 20 MHz, clock rate is not comparable to hardware because the emulator is not cycle accurate
 const FRAME_RATE: f64 = 60.0;
 const CYCLES_PER_FRAME: f64 = CLOCK_RATE / FRAME_RATE;
 const WHOLE_CYCLES_PER_FRAME: u64 = CYCLES_PER_FRAME as u64;
