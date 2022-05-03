@@ -228,7 +228,7 @@ impl<const WIDTH: usize, const HEIGHT: usize> Framebuffer<WIDTH, HEIGHT> {
 
 const BITMAP_COUNT: usize = 1024;
 const PALETTE_COUNT: usize = 64;
-const TILEMAP_SIZE: usize = 128;
+const TILEMAP_SIZE: usize = 64;
 const TILE_COUNT: usize = TILEMAP_SIZE * TILEMAP_SIZE;
 
 const BITMAP_BLOCK: usize = 0;
@@ -378,7 +378,7 @@ impl Vram {
     }
 
     fn write32(&mut self, addr: usize, value: u32) {
-        match (addr >> 16) & 0x3 {
+        match (addr >> 22) & 0x3 {
             BITMAP_BLOCK => {
                 write_mem!(u32, self.bitmap_mem.as_mut(), addr % BITMAP_MEM_SIZE, value)
             }
@@ -394,7 +394,7 @@ impl Vram {
     }
 
     fn write16(&mut self, addr: usize, value: u16) {
-        match (addr >> 16) & 0x3 {
+        match (addr >> 22) & 0x3 {
             BITMAP_BLOCK => {
                 write_mem!(u16, self.bitmap_mem.as_mut(), addr % BITMAP_MEM_SIZE, value)
             }
@@ -410,7 +410,7 @@ impl Vram {
     }
 
     fn write8(&mut self, addr: usize, value: u8) {
-        match (addr >> 16) & 0x3 {
+        match (addr >> 22) & 0x3 {
             BITMAP_BLOCK => write_mem!(u8, self.bitmap_mem.as_mut(), addr % BITMAP_MEM_SIZE, value),
             PALETTE_BLOCK => write_mem!(
                 u8,

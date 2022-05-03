@@ -30,9 +30,9 @@ const TITLE: &str = "a32emu";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
 
-const SCREEN_WIDTH: u16 = 800;
-const SCREEN_HEIGHT: u16 = 600;
-const SCREEN_SCALE: f32 = 2.0;
+const SCREEN_WIDTH: u16 = 400;
+const SCREEN_HEIGHT: u16 = 300;
+const SCREEN_SCALE: f32 = 3.0;
 
 const CLOCK_RATE: f64 = 20_000_000.0; // 20 MHz, clock rate is not comparable to hardware because the emulator is not cycle accurate
 const FRAME_RATE: f64 = 60.0;
