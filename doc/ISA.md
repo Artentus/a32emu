@@ -71,6 +71,8 @@
 | `MULHUU  d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1011_001` | `d = (l * r)[63..32]` |
 | `MULHSS  d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1100_001` | `d = (l * r)[63..32]` |
 | `MULHSU  d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1101_001` | `d = (l * r)[63..32]` |
+| `CSUB    d, l, r   ` | `0_---------_rrrrr_lllll_ddddd_1110_001` | `d = (l >= r) ? l - r : l` |
+| `SLC     d, l      ` | `0_---------_-----_lllll_ddddd_1111_001` | `d = (l << 1) + C` |
 |                      |                                          |           |
 | `ADD     d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_0000_010` | `d = l + v` |
 | `ADDC    d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_0001_010` | `d = l + v + C` |
@@ -86,6 +88,8 @@
 | `MULHUU  d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1011_010` | `d = (l * v)[63..32]` |
 | `MULHSS  d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1100_010` | `d = (l * v)[63..32]` |
 | `MULHSU  d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1101_010` | `d = (l * v)[63..32]` |
+| `CSUB    d, l, v   ` | `i_vvvvvvvvv_vvvvv_lllll_ddddd_1110_010` | `d = (l >= v) ? l - v : l` |
+| `SLC     d, l      ` | `0_---------_-----_lllll_ddddd_1111_010` | `d = (l << 1) + C` |
 |                      |                                          |           |
 | `LD      d, [s + o]` | `0_---------_ooooo_sssss_ddddd_0000_011` | `d = mem[s + o]` |
 | `LD      d, [s + v]` | `i_vvvvvvvvv_vvvvv_sssss_ddddd_0001_011` | `d = mem[s + v]` |

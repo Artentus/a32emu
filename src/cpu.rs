@@ -25,7 +25,8 @@ enum AluOperation {
     Mulhuu,
     Mulhss,
     Mulhsu,
-    None,
+    Csub,
+    Slc,
 }
 impl AluOperation {
     fn decode(op: Word) -> Self {
@@ -44,7 +45,9 @@ impl AluOperation {
             0xB => Self::Mulhuu,
             0xC => Self::Mulhss,
             0xD => Self::Mulhsu,
-            _ => Self::None,
+            0xE => Self::Csub,
+            0xF => Self::Slc,
+            _ => unreachable!(),
         }
     }
 }
@@ -568,7 +571,25 @@ impl Cpu {
                 z = result == 0;
                 result
             }
-            AluOperation::None => 0,
+            AluOperation::Csub => {
+                if lhs_val >= rhs_val {
+                    let result = lhs_val - rhs_val;
+                    c = true;
+                    z = result == 0;
+                    result
+                } else {
+                    c = false;
+                    z = lhs_val == 0;
+                    lhs_val
+                }
+            }
+            AluOperation::Slc => {
+                let c_in = if c { 1 } else { 0 };
+                let result = (lhs_val << 1) | c_in;
+                c = (lhs_val >> 31) != 0;
+                z = result == 0;
+                result
+            }
         };
 
         if set_flags {
