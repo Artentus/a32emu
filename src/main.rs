@@ -148,7 +148,7 @@ struct HeadlessState {
     utf8_builder: Utf8Builder,
 }
 impl HeadlessState {
-    fn new(rom: Option<Vec<u32>>) -> Self {
+    fn new(rom: Vec<u32>) -> Self {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -215,7 +215,7 @@ struct EmuState {
     loop_helper: LoopHelper,
 }
 impl EmuState {
-    fn new(rom: Option<Vec<u32>>, font: Font) -> GameResult<Self> {
+    fn new(rom: Vec<u32>, font: Font) -> GameResult<Self> {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
@@ -631,9 +631,9 @@ fn print_usage(opts: Options) {
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let mut opts = Options::new();
-    opts.optflag("", "headless", "run in headless mode");
-    opts.optopt("", "max-cycles", "max cycles before abort", "INT");
-    opts.optopt("", "rom", "Binary file to load into the ROM", "FILE");
+    opts.reqopt("", "rom", "Binary file to load into kernel memory", "FILE");
+    opts.optflag("", "headless", "Run in headless mode");
+    opts.optopt("", "max-cycles", "Max cycles before abort", "INT");
 
     let result = opts.parse(args);
     if let Err(_) = result {
@@ -648,7 +648,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .opt_get_default("max-cycles", DEFAULT_MAX_CYCLES)
         .unwrap_or(DEFAULT_MAX_CYCLES);
 
-    let rom: Option<Vec<u32>> = match matches.opt_str("rom") {
+    let rom: Vec<u32> = match matches.opt_str("rom") {
         Some(path) => {
             let mut rom_file = std::fs::File::open(path)?;
             let mut rom_vec: Vec<u32> = Vec::new();
@@ -661,9 +661,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            Some(rom_vec)
+            rom_vec
         }
-        None => None,
+        None => unreachable!("rom argument is required"),
     };
 
     if headless {

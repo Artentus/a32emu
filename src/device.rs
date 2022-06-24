@@ -5,8 +5,6 @@ use std::collections::VecDeque;
 use std::io::{Cursor, Read};
 use std::num::Wrapping;
 
-const KERNEL_ROM: &[u8] = include_bytes!("../res/kernel_rom.bin");
-
 macro_rules! read_mem {
     ($t:ty, $mem:expr, $addr:expr) => {{
         let mem_t: &[$t] = bytemuck::cast_slice($mem);
@@ -47,23 +45,6 @@ impl Ram {
             size,
             mem: mem.into_boxed_slice(),
         }
-    }
-
-    fn new_default_kernel(size: usize) -> Self {
-        assert!(KERNEL_ROM.len() <= size);
-
-        let mut mem = Vec::with_capacity(size / 4);
-        let mut cursor = Cursor::new(KERNEL_ROM);
-
-        loop {
-            let mut bytes: [u8; 4] = [0; 4];
-            match cursor.read_exact(&mut bytes) {
-                Ok(_) => mem.push(u32::from_ne_bytes(bytes)),
-                Err(_) => break,
-            }
-        }
-
-        Self::new_init(size, mem)
     }
 
     #[inline]
@@ -494,15 +475,9 @@ pub struct MemoryBus {
     vram: Vram,
 }
 impl MemoryBus {
-    pub fn new(rom: Option<Vec<u32>>) -> Self {
-        let kram = if let Some(rom) = rom {
-            Ram::new_init(KRAM_SIZE, rom)
-        } else {
-            Ram::new_default_kernel(KRAM_SIZE)
-        };
-
+    pub fn new(rom: Vec<u32>) -> Self {
         Self {
-            kram,
+            kram: Ram::new_init(KRAM_SIZE, rom),
             sram: Ram::new_zeroed(SRAM_SIZE),
             vram: Vram::new(),
         }
