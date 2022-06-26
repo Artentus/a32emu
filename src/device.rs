@@ -2,8 +2,6 @@ use crate::{borrow_shared, SharedRef, Word};
 use bytemuck::{Pod, Zeroable};
 use lru::LruCache;
 use std::collections::VecDeque;
-use std::io::{Cursor, Read};
-use std::num::Wrapping;
 
 macro_rules! read_mem {
     ($t:ty, $mem:expr, $addr:expr) => {{
@@ -550,6 +548,8 @@ impl MemoryBus {
     }
 
     pub fn copy(&mut self, src: usize, dst: usize, len: usize, dir: CopyDirection, k_flag: bool) {
+        use std::num::Wrapping;
+
         let mut src = Wrapping(src);
         let mut dst = Wrapping(dst);
         let mut len = len;

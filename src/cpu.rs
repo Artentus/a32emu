@@ -1,7 +1,6 @@
 use crate::device::{IoBus, MemoryBus};
 use crate::{SWord, Word};
 use std::fmt::Display;
-use std::num::Wrapping;
 
 const REG_COUNT: usize = 32;
 const SYSCALL_ADDRESS: Word = 0x00_007FF0;
@@ -53,18 +52,9 @@ impl AluOperation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AluSource {
+enum AluRhs {
     Register(Register),
     Immediate,
-    ProgramCounter,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AluInstruction {
-    op: AluOperation,
-    lhs: AluSource,
-    rhs: AluSource,
-    dst: Register,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,27 +62,22 @@ enum MemoryMode {
     Bits32,
     Bits16,
     Bits8,
+    Io,
+}
+impl MemoryMode {
+    fn decode(op: Word) -> Self {
+        match op & 0x3 {
+            0x0 => Self::Bits32,
+            0x1 => Self::Bits8,
+            0x2 => Self::Bits16,
+            0x3 => Self::Io,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct LoadInstruction {
-    mode: MemoryMode,
-    signed: bool,
-    base: AluSource,
-    offset: AluSource,
-    dst: Register,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct StoreInstruction {
-    mode: MemoryMode,
-    base: AluSource,
-    offset: AluSource,
-    src: Register,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum JumpCondition {
+enum BranchCondition {
     Never,
     Carry,
     Zero,
@@ -110,7 +95,7 @@ enum JumpCondition {
     SignedGreater,
     Always,
 }
-impl JumpCondition {
+impl BranchCondition {
     fn decode(op: Word) -> Self {
         match op & 0xF {
             0x0 => Self::Never,
@@ -135,25 +120,18 @@ impl JumpCondition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct JumpInstruction {
-    con: JumpCondition,
-    base: AluSource,
-    offset: AluSource,
-    indirect: bool,
+enum UpperImmediateKind {
+    Load,
+    AddPc,
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct InInstruction {
-    base: AluSource,
-    offset: AluSource,
-    dst: Register,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct OutInstruction {
-    base: AluSource,
-    offset: AluSource,
-    src: Register,
+impl UpperImmediateKind {
+    fn decode(op: Word) -> Self {
+        match op & 0x1 {
+            0x0 => Self::Load,
+            0x1 => Self::AddPc,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,31 +140,53 @@ enum Instruction {
     Brk,
     Hlt,
     Err,
-    Alu(AluInstruction),
-    Load(LoadInstruction),
-    Store(StoreInstruction),
-    Jump(JumpInstruction),
-    In(InInstruction),
-    Out(OutInstruction),
+    Alu {
+        op: AluOperation,
+        lhs: Register,
+        rhs: AluRhs,
+        dst: Register,
+    },
+    Load {
+        mode: MemoryMode,
+        signed: bool,
+        base: Register,
+        dst: Register,
+    },
+    Store {
+        mode: MemoryMode,
+        base: Register,
+        src: Register,
+    },
+    Jump {
+        base: Register,
+        indirect: bool,
+    },
+    Branch {
+        condition: BranchCondition,
+    },
+    UpperImmediate {
+        kind: UpperImmediateKind,
+        dst: Register,
+    },
     Sys,
     Clrk,
 }
 impl Instruction {
     fn decode(code: Word) -> Self {
         const GRP_MISC: Word = 0b000;
-        const GRP_ALU_GPR: Word = 0b001;
+        const GRP_ALU_REG: Word = 0b001;
         const GRP_ALU_IMM: Word = 0b010;
         const GRP_LD_ST: Word = 0b011;
         const GRP_JMP: Word = 0b100;
         const GRP_BRA: Word = 0b101;
-        const GRP_IO: Word = 0b110;
+        const GRP_UI: Word = 0b110;
         const GRP_SYS: Word = 0b111;
 
         let grp = code & 0x7;
         let op = (code >> 3) & 0xF;
-        let reg1 = ((code >> 7) & 0x1F) as Register;
-        let reg2 = ((code >> 12) & 0x1F) as Register;
-        let reg3 = ((code >> 17) & 0x1F) as Register;
+        let rd = ((code >> 7) & 0x1F) as Register;
+        let rs1 = ((code >> 12) & 0x1F) as Register;
+        let rs2 = ((code >> 17) & 0x1F) as Register;
 
         match grp {
             GRP_MISC => {
@@ -203,156 +203,47 @@ impl Instruction {
                     _ => unreachable!(),
                 }
             }
-            GRP_ALU_GPR => {
-                let inst = AluInstruction {
-                    op: AluOperation::decode(op),
-                    lhs: AluSource::Register(reg2),
-                    rhs: AluSource::Register(reg3),
-                    dst: reg1,
-                };
-
-                Self::Alu(inst)
-            }
-            GRP_ALU_IMM => {
-                let inst = AluInstruction {
-                    op: AluOperation::decode(op),
-                    lhs: AluSource::Register(reg2),
-                    rhs: AluSource::Immediate,
-                    dst: reg1,
-                };
-
-                Self::Alu(inst)
-            }
+            GRP_ALU_REG => Self::Alu {
+                op: AluOperation::decode(op),
+                lhs: rs1,
+                rhs: AluRhs::Register(rs2),
+                dst: rd,
+            },
+            GRP_ALU_IMM => Self::Alu {
+                op: AluOperation::decode(op),
+                lhs: rs1,
+                rhs: AluRhs::Immediate,
+                dst: rd,
+            },
             GRP_LD_ST => {
-                let is_imm = (op & 0x1) != 0;
-                let offset = if is_imm {
-                    AluSource::Immediate
-                } else {
-                    AluSource::Register(reg3)
-                };
+                let mode = MemoryMode::decode(op);
 
-                if (op >> 2) == 0x3 {
-                    let mode = if (op & 0x2) == 0 {
-                        MemoryMode::Bits8
-                    } else {
-                        MemoryMode::Bits16
-                    };
-
-                    let inst = LoadInstruction {
+                if (op & 0x8) == 0 {
+                    Self::Load {
                         mode,
-                        signed: true,
-                        base: AluSource::Register(reg2),
-                        offset,
-                        dst: reg1,
-                    };
-
-                    Self::Load(inst)
+                        signed: (op & 0x4) != 0,
+                        base: rs1,
+                        dst: rd,
+                    }
                 } else {
-                    let is_st = (op & 0x2) != 0;
-
-                    let mode = match op >> 2 {
-                        0x0 => MemoryMode::Bits32,
-                        0x1 => MemoryMode::Bits8,
-                        0x2 => MemoryMode::Bits16,
-                        _ => unreachable!(),
-                    };
-
-                    if is_st {
-                        let inst = StoreInstruction {
-                            mode,
-                            base: AluSource::Register(reg1),
-                            offset,
-                            src: reg2,
-                        };
-
-                        Self::Store(inst)
-                    } else {
-                        let inst = LoadInstruction {
-                            mode,
-                            signed: false,
-                            base: AluSource::Register(reg2),
-                            offset,
-                            dst: reg1,
-                        };
-
-                        Self::Load(inst)
+                    Self::Store {
+                        mode,
+                        base: rd,
+                        src: rs1,
                     }
                 }
             }
-            GRP_JMP => {
-                const OP_DIR_REG: Word = 0x0;
-                const OP_DIR_IMM: Word = 0x1;
-                const OP_IND_REG: Word = 0x2;
-                const OP_IND_IMM: Word = 0x3;
-
-                let inst = match op & 0x3 {
-                    OP_DIR_REG => JumpInstruction {
-                        con: JumpCondition::Always,
-                        base: AluSource::Register(reg2),
-                        offset: AluSource::Register(reg3),
-                        indirect: false,
-                    },
-                    OP_DIR_IMM => JumpInstruction {
-                        con: JumpCondition::Always,
-                        base: AluSource::Register(reg2),
-                        offset: AluSource::Immediate,
-                        indirect: false,
-                    },
-                    OP_IND_REG => JumpInstruction {
-                        con: JumpCondition::Always,
-                        base: AluSource::Register(reg2),
-                        offset: AluSource::Register(reg3),
-                        indirect: true,
-                    },
-                    OP_IND_IMM => JumpInstruction {
-                        con: JumpCondition::Always,
-                        base: AluSource::Register(reg2),
-                        offset: AluSource::Immediate,
-                        indirect: true,
-                    },
-                    _ => unreachable!(),
-                };
-
-                Self::Jump(inst)
-            }
-            GRP_BRA => {
-                let inst = JumpInstruction {
-                    con: JumpCondition::decode(op),
-                    base: AluSource::ProgramCounter,
-                    offset: AluSource::Immediate,
-                    indirect: false,
-                };
-
-                Self::Jump(inst)
-            }
-            GRP_IO => {
-                let is_imm = (op & 0x1) != 0;
-                let is_out = (op & 0x2) != 0;
-
-                let offset = if is_imm {
-                    AluSource::Immediate
-                } else {
-                    AluSource::Register(reg3)
-                };
-
-                if is_out {
-                    let inst = OutInstruction {
-                        base: AluSource::Register(reg1),
-                        offset,
-                        src: reg2,
-                    };
-
-                    Self::Out(inst)
-                } else {
-                    let inst = InInstruction {
-                        base: AluSource::Register(reg2),
-                        offset,
-                        dst: reg1,
-                    };
-
-                    Self::In(inst)
-                }
-            }
+            GRP_JMP => Self::Jump {
+                base: rs1,
+                indirect: (op & 0x1) != 0,
+            },
+            GRP_BRA => Self::Branch {
+                condition: BranchCondition::decode(op),
+            },
+            GRP_UI => Self::UpperImmediate {
+                kind: UpperImmediateKind::decode(op),
+                dst: rd,
+            },
             GRP_SYS => {
                 const OP_SYS: Word = 0x0;
                 const OP_CLRK: Word = 0x1;
@@ -377,7 +268,7 @@ pub enum ClockResult {
 }
 
 pub struct Cpu {
-    pc: Wrapping<Word>,
+    pc: Word,
     regs: [Word; REG_COUNT],
 
     c: Flag,
@@ -387,12 +278,14 @@ pub struct Cpu {
     k: Flag,
 
     inst: Instruction,
-    imm: Word,
+    imm15: Word,
+    imm22: Word,
+    u_imm: Word,
 }
 impl Cpu {
     pub const fn new() -> Self {
         Self {
-            pc: Wrapping(0),
+            pc: 0,
             regs: [0; REG_COUNT],
             c: false,
             z: false,
@@ -400,14 +293,16 @@ impl Cpu {
             o: false,
             k: true,
             inst: Instruction::Nop,
-            imm: 0,
+            imm15: 0,
+            imm22: 0,
+            u_imm: 0,
         }
     }
 
     #[allow(dead_code)]
     #[inline]
     pub fn pc(&self) -> Word {
-        self.pc.0
+        self.pc
     }
 
     #[allow(dead_code)]
@@ -418,14 +313,8 @@ impl Cpu {
 
     #[allow(dead_code)]
     #[inline]
-    pub fn bp(&self) -> Word {
-        self.regs[2]
-    }
-
-    #[allow(dead_code)]
-    #[inline]
     pub fn sp(&self) -> Word {
-        self.regs[3]
+        self.regs[2]
     }
 
     #[allow(dead_code)]
@@ -435,7 +324,7 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
-        self.pc = Wrapping(0);
+        self.pc = 0;
         self.regs = [0; REG_COUNT];
         self.c = false;
         self.z = false;
@@ -443,7 +332,9 @@ impl Cpu {
         self.o = false;
         self.k = true;
         self.inst = Instruction::Nop;
-        self.imm = 0;
+        self.imm15 = 0;
+        self.imm22 = 0;
+        self.u_imm = 0;
     }
 
     #[inline]
@@ -458,26 +349,19 @@ impl Cpu {
         }
     }
 
-    fn read_source(&self, src: AluSource) -> Word {
-        match src {
-            AluSource::Register(reg) => self.read_reg(reg),
-            AluSource::Immediate => self.imm,
-            AluSource::ProgramCounter => self.pc.0,
+    fn read_rhs(&self, rhs: AluRhs) -> Word {
+        match rhs {
+            AluRhs::Register(reg) => self.read_reg(reg),
+            AluRhs::Immediate => self.imm15,
         }
     }
 
-    fn exec_alu(
-        &mut self,
-        op: AluOperation,
-        lhs: AluSource,
-        rhs: AluSource,
-        set_flags: bool,
-    ) -> Word {
-        let lhs_val = self.read_source(lhs);
-        let rhs_val = self.read_source(rhs);
+    fn exec_alu(&mut self, op: AluOperation, lhs: Register, rhs: AluRhs) -> Word {
+        let lhs_val = self.read_reg(lhs);
+        let rhs_val = self.read_rhs(rhs);
 
         let mut c: Flag = self.c;
-        let mut z: Flag = self.z;
+        let z: Flag;
         let mut s: Flag = self.s;
         let mut o: Flag = self.o;
 
@@ -592,146 +476,139 @@ impl Cpu {
             }
         };
 
-        if set_flags {
-            self.c = c;
-            self.z = z;
-            self.s = s;
-            self.o = o;
-        }
+        self.c = c;
+        self.z = z;
+        self.s = s;
+        self.o = o;
 
         result
     }
 
-    fn jump(&mut self, dst: Word, con: JumpCondition) {
-        let do_jump = match con {
-            JumpCondition::Never => false,
-            JumpCondition::Carry => self.c,
-            JumpCondition::Zero => self.z,
-            JumpCondition::Sign => self.s,
-            JumpCondition::Overflow => self.o,
-            JumpCondition::NotCarry => !self.c,
-            JumpCondition::NotZero => !self.z,
-            JumpCondition::NotSign => !self.s,
-            JumpCondition::NotOverflow => !self.o,
-            JumpCondition::UnsignedLessEqual => !self.c || self.z,
-            JumpCondition::UnsignedGreater => self.c && !self.z,
-            JumpCondition::SignedLess => self.s != self.o,
-            JumpCondition::SignedGreaterEqual => self.s == self.o,
-            JumpCondition::SignedLessEqual => (self.s != self.o) || self.z,
-            JumpCondition::SignedGreater => (self.s == self.o) && !self.z,
-            JumpCondition::Always => true,
+    fn branch(&mut self, addr: Word, condition: BranchCondition) {
+        let do_jump = match condition {
+            BranchCondition::Never => false,
+            BranchCondition::Carry => self.c,
+            BranchCondition::Zero => self.z,
+            BranchCondition::Sign => self.s,
+            BranchCondition::Overflow => self.o,
+            BranchCondition::NotCarry => !self.c,
+            BranchCondition::NotZero => !self.z,
+            BranchCondition::NotSign => !self.s,
+            BranchCondition::NotOverflow => !self.o,
+            BranchCondition::UnsignedLessEqual => !self.c || self.z,
+            BranchCondition::UnsignedGreater => self.c && !self.z,
+            BranchCondition::SignedLess => self.s != self.o,
+            BranchCondition::SignedGreaterEqual => self.s == self.o,
+            BranchCondition::SignedLessEqual => (self.s != self.o) || self.z,
+            BranchCondition::SignedGreater => (self.s == self.o) && !self.z,
+            BranchCondition::Always => true,
         };
 
         if do_jump {
-            self.pc = Wrapping(dst);
+            self.pc = addr & 0xFFFF_FFFC;
         }
     }
 
     pub fn clock(&mut self, mem: &mut MemoryBus, io: &mut IoBus) -> ClockResult {
-        const PC_INC: Wrapping<Word> = Wrapping(std::mem::size_of::<Word>() as Word);
+        const PC_INC: Word = std::mem::size_of::<Word>() as Word;
 
-        let inst = mem.read32(self.pc.0 as usize, self.k);
+        let inst = mem.read32(self.pc as usize, self.k);
         self.inst = Instruction::decode(inst);
-        self.pc += PC_INC;
+        self.pc = self.pc.wrapping_add(PC_INC);
 
-        self.imm = if (inst & 0x80000000) != 0 {
-            let ui = mem.read32(self.pc.0 as usize, self.k);
-            self.pc += PC_INC;
-
-            (ui << 14) | ((inst >> 17) & 0x00003FFF)
-        } else {
-            (((inst << 1) as SWord) >> 18) as Word
-        };
+        self.imm15 = ((inst as SWord) >> 17) as Word;
+        self.imm22 = ((((inst & 0x8000_0000) as SWord) >> 10) as Word)
+            | ((inst & 0x7FF8_0000) >> 17)
+            | ((inst & 0x0007_F000) << 2);
+        self.u_imm =
+            (inst & 0x8000_0000) | ((inst & 0x6000_0000) >> 17) | ((inst & 0x1FFF_F000) << 2);
 
         match self.inst {
             Instruction::Nop => ClockResult::Continue,
             Instruction::Brk => ClockResult::Break,
             Instruction::Hlt => ClockResult::Halt,
             Instruction::Err => ClockResult::Error,
-            Instruction::Alu(inst) => {
-                let result = self.exec_alu(inst.op, inst.lhs, inst.rhs, true);
-                self.write_reg(inst.dst, result);
+            Instruction::Alu { op, lhs, rhs, dst } => {
+                let result = self.exec_alu(op, lhs, rhs);
+                self.write_reg(dst, result);
 
                 ClockResult::Continue
             }
-            Instruction::Load(inst) => {
-                let addr = self.exec_alu(AluOperation::Add, inst.base, inst.offset, false) as usize;
-                let value = if self.k || (addr >= 0x01000000) {
-                    match inst.mode {
-                        MemoryMode::Bits32 => mem.read32(addr, self.k) as Word,
-                        MemoryMode::Bits16 => {
-                            if inst.signed {
-                                let sval = mem.read16(addr, self.k) as i16;
-                                (sval as SWord) as Word
-                            } else {
-                                mem.read16(addr, self.k) as Word
-                            }
-                        }
-                        MemoryMode::Bits8 => {
-                            if inst.signed {
-                                let sval = mem.read8(addr, self.k) as i8;
-                                (sval as SWord) as Word
-                            } else {
-                                mem.read8(addr, self.k) as Word
-                            }
+            Instruction::Load {
+                mode,
+                signed,
+                base,
+                dst,
+            } => {
+                let addr = self.read_reg(base).wrapping_add(self.imm15) as usize;
+
+                let value = match mode {
+                    MemoryMode::Bits32 => mem.read32(addr, self.k) as Word,
+                    MemoryMode::Bits16 => {
+                        if signed {
+                            let sval = mem.read16(addr, self.k) as i16;
+                            (sval as SWord) as Word
+                        } else {
+                            mem.read16(addr, self.k) as Word
                         }
                     }
-                } else {
-                    0
+                    MemoryMode::Bits8 => {
+                        if signed {
+                            let sval = mem.read8(addr, self.k) as i8;
+                            (sval as SWord) as Word
+                        } else {
+                            mem.read8(addr, self.k) as Word
+                        }
+                    }
+                    MemoryMode::Io => io.read(addr, self.k),
                 };
 
-                self.write_reg(inst.dst, value);
+                self.write_reg(dst, value);
 
                 ClockResult::Continue
             }
-            Instruction::Store(inst) => {
-                let addr = self.exec_alu(AluOperation::Add, inst.base, inst.offset, false) as usize;
-                if self.k || (addr >= 0x01000000) {
-                    let value = self.read_reg(inst.src);
-                    match inst.mode {
-                        MemoryMode::Bits32 => mem.write32(addr, value as u32, self.k),
-                        MemoryMode::Bits16 => mem.write16(addr, value as u16, self.k),
-                        MemoryMode::Bits8 => mem.write8(addr, value as u8, self.k),
-                    }
+            Instruction::Store { mode, base, src } => {
+                let addr = self.read_reg(base).wrapping_add(self.imm15) as usize;
+                let value = self.read_reg(src);
+
+                match mode {
+                    MemoryMode::Bits32 => mem.write32(addr, value as u32, self.k),
+                    MemoryMode::Bits16 => mem.write16(addr, value as u16, self.k),
+                    MemoryMode::Bits8 => mem.write8(addr, value as u8, self.k),
+                    MemoryMode::Io => io.write(addr, value, self.k),
                 }
 
                 ClockResult::Continue
             }
-            Instruction::Jump(inst) => {
-                let mut addr = self.exec_alu(AluOperation::Add, inst.base, inst.offset, false);
-                if inst.indirect {
+            Instruction::Jump { base, indirect } => {
+                let mut addr = self.read_reg(base).wrapping_add(self.imm15);
+                if indirect {
                     addr = mem.read32(addr as usize, self.k) as Word
                 }
-                self.jump(addr, inst.con);
+
+                self.pc = addr & 0xFFFF_FFFC;
 
                 ClockResult::Continue
             }
-            Instruction::In(inst) => {
-                let value = if self.k {
-                    let addr =
-                        self.exec_alu(AluOperation::Add, inst.base, inst.offset, false) as usize;
-                    io.read(addr, self.k)
-                } else {
-                    0
+            Instruction::Branch { condition } => {
+                let addr = self.pc.wrapping_add(self.imm22);
+                self.branch(addr, condition);
+
+                ClockResult::Continue
+            }
+            Instruction::UpperImmediate { kind, dst } => {
+                let value = match kind {
+                    UpperImmediateKind::Load => self.u_imm,
+                    UpperImmediateKind::AddPc => self.pc.wrapping_add(self.u_imm),
                 };
 
-                self.write_reg(inst.dst, value);
-
-                ClockResult::Continue
-            }
-            Instruction::Out(inst) => {
-                if self.k {
-                    let addr =
-                        self.exec_alu(AluOperation::Add, inst.base, inst.offset, false) as usize;
-                    let value = self.read_reg(inst.src);
-                    io.write(addr, value, self.k);
-                }
+                self.write_reg(dst, value);
 
                 ClockResult::Continue
             }
             Instruction::Sys => {
                 self.k = true;
-                self.pc = Wrapping(SYSCALL_ADDRESS);
+                self.pc = SYSCALL_ADDRESS;
 
                 ClockResult::Continue
             }
@@ -751,7 +628,7 @@ impl Display for Cpu {
         let o_val = if self.o { 1 } else { 0 };
         let k_val = if self.k { 1 } else { 0 };
 
-        writeln!(f, "PC: {:0>8X}", self.pc.0)?;
+        writeln!(f, "PC: {:0>8X}", self.pc)?;
         writeln!(f)?;
 
         writeln!(f, "C Z S O K")?;
@@ -760,10 +637,10 @@ impl Display for Cpu {
 
         #[rustfmt::skip]
         const REG_NAMES: [&str; REG_COUNT - 1] = [
-            "ra", "bp", "sp",
+            "ra", "sp",
             "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
-            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
-            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9",
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12",
         ];
 
         for i in 0..(REG_COUNT - 1) {

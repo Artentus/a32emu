@@ -624,7 +624,7 @@ impl EventHandler<GameError> for EmuState {
 }
 
 fn print_usage(opts: Options) {
-    let brief = format!("Usage: a32emu [--headless [--max-cycles INT]] [--rom FILE]");
+    let brief = format!("Usage: a32emu [--headless [--max-cycles INT]] <--rom FILE]>");
     println!("{}", opts.usage(&brief));
 }
 
@@ -633,7 +633,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut opts = Options::new();
     opts.reqopt("", "rom", "Binary file to load into kernel memory", "FILE");
     opts.optflag("", "headless", "Run in headless mode");
-    opts.optopt("", "max-cycles", "Max cycles before abort", "INT");
+    opts.optopt(
+        "",
+        "max-cycles",
+        "Max cycles before abort (default: 1_000_000)",
+        "INT",
+    );
 
     let result = opts.parse(args);
     if let Err(_) = result {
