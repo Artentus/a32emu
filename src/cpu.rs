@@ -161,6 +161,9 @@ enum Instruction {
         base: Register,
         indirect: bool,
     },
+    Link {
+        dst: Register,
+    },
     Branch {
         condition: BranchCondition,
     },
@@ -233,10 +236,16 @@ impl Instruction {
                     }
                 }
             }
-            GRP_JMP => Self::Jump {
-                base: rs1,
-                indirect: (op & 0x1) != 0,
-            },
+            GRP_JMP => {
+                if (op & 0x8) == 0 {
+                    Self::Jump {
+                        base: rs1,
+                        indirect: (op & 0x1) != 0,
+                    }
+                } else {
+                    Self::Link { dst: rd }
+                }
+            }
             GRP_BRA => Self::Branch {
                 condition: BranchCondition::decode(op),
             },
@@ -597,6 +606,12 @@ impl Cpu {
                 }
 
                 self.pc = addr & 0xFFFF_FFFC;
+                ClockResult::Continue
+            }
+            Instruction::Link { dst } => {
+                self.write_reg(dst, self.imm15);
+
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Branch { condition } => {
