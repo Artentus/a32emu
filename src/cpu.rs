@@ -484,8 +484,8 @@ impl Cpu {
         result
     }
 
-    fn branch(&mut self, addr: Word, condition: BranchCondition) {
-        let do_jump = match condition {
+    fn do_branch(&mut self, condition: BranchCondition) -> bool {
+        match condition {
             BranchCondition::Never => false,
             BranchCondition::Carry => self.c,
             BranchCondition::Zero => self.z,
@@ -502,10 +502,6 @@ impl Cpu {
             BranchCondition::SignedLessEqual => (self.s != self.o) || self.z,
             BranchCondition::SignedGreater => (self.s == self.o) && !self.z,
             BranchCondition::Always => true,
-        };
-
-        if do_jump {
-            self.pc = addr & 0xFFFF_FFFC;
         }
     }
 
@@ -514,7 +510,6 @@ impl Cpu {
 
         let inst = mem.read32(self.pc as usize, self.k);
         self.inst = Instruction::decode(inst);
-        self.pc = self.pc.wrapping_add(PC_INC);
 
         self.imm15 = ((inst as SWord) >> 17) as Word;
         self.imm22 = ((((inst & 0x8000_0000) as SWord) >> 10) as Word)
@@ -524,14 +519,27 @@ impl Cpu {
             (inst & 0x8000_0000) | ((inst & 0x6000_0000) >> 17) | ((inst & 0x1FFF_F000) << 2);
 
         match self.inst {
-            Instruction::Nop => ClockResult::Continue,
-            Instruction::Brk => ClockResult::Break,
-            Instruction::Hlt => ClockResult::Halt,
-            Instruction::Err => ClockResult::Error,
+            Instruction::Nop => {
+                self.pc = self.pc.wrapping_add(PC_INC);
+                ClockResult::Continue
+            }
+            Instruction::Brk => {
+                self.pc = self.pc.wrapping_add(PC_INC);
+                ClockResult::Break
+            }
+            Instruction::Hlt => {
+                self.pc = self.pc.wrapping_add(PC_INC);
+                ClockResult::Halt
+            }
+            Instruction::Err => {
+                self.pc = self.pc.wrapping_add(PC_INC);
+                ClockResult::Error
+            }
             Instruction::Alu { op, lhs, rhs, dst } => {
                 let result = self.exec_alu(op, lhs, rhs);
                 self.write_reg(dst, result);
 
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Load {
@@ -565,6 +573,7 @@ impl Cpu {
 
                 self.write_reg(dst, value);
 
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Store { mode, base, src } => {
@@ -578,6 +587,7 @@ impl Cpu {
                     MemoryMode::Io => io.write(addr, value, self.k),
                 }
 
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Jump { base, indirect } => {
@@ -587,12 +597,15 @@ impl Cpu {
                 }
 
                 self.pc = addr & 0xFFFF_FFFC;
-
                 ClockResult::Continue
             }
             Instruction::Branch { condition } => {
-                let addr = self.pc.wrapping_add(self.imm22);
-                self.branch(addr, condition);
+                if self.do_branch(condition) {
+                    let addr = self.pc.wrapping_add(self.imm22);
+                    self.pc = addr & 0xFFFF_FFFC;
+                } else {
+                    self.pc = self.pc.wrapping_add(PC_INC);
+                }
 
                 ClockResult::Continue
             }
@@ -604,17 +617,19 @@ impl Cpu {
 
                 self.write_reg(dst, value);
 
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Sys => {
                 self.k = true;
-                self.pc = SYSCALL_ADDRESS;
 
+                self.pc = SYSCALL_ADDRESS;
                 ClockResult::Continue
             }
             Instruction::Clrk => {
                 self.k = false;
 
+                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
         }
