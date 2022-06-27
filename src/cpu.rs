@@ -609,7 +609,8 @@ impl Cpu {
                 ClockResult::Continue
             }
             Instruction::Link { dst } => {
-                self.write_reg(dst, self.imm15);
+                let value = self.pc.wrapping_add(self.imm15);
+                self.write_reg(dst, value);
 
                 self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
