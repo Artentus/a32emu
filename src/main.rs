@@ -269,7 +269,7 @@ impl EmuState {
 
                 match key_event.code {
                     crossterm::event::KeyCode::Backspace => {}
-                    crossterm::event::KeyCode::Enter => {}
+                    crossterm::event::KeyCode::Enter => uart.host_write(b'\n'),
                     crossterm::event::KeyCode::Left => {
                         uart.host_write(ESC_SEQ[0]);
                         uart.host_write(ESC_SEQ[1]);

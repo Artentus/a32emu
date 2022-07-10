@@ -77,7 +77,7 @@ impl MemoryMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BranchCondition {
+enum Condition {
     Never,
     Carry,
     Zero,
@@ -95,7 +95,7 @@ enum BranchCondition {
     SignedGreater,
     Always,
 }
-impl BranchCondition {
+impl Condition {
     fn decode(op: Word) -> Self {
         match op & 0xF {
             0x0 => Self::Never,
@@ -140,6 +140,8 @@ enum Instruction {
     Brk,
     Hlt,
     Err,
+    Sys,
+    Clrk,
     Alu {
         op: AluOperation,
         lhs: Register,
@@ -164,15 +166,19 @@ enum Instruction {
     Link {
         dst: Register,
     },
-    Branch {
-        condition: BranchCondition,
-    },
     UpperImmediate {
         kind: UpperImmediateKind,
         dst: Register,
     },
-    Sys,
-    Clrk,
+    Branch {
+        condition: Condition,
+    },
+    Move {
+        condition: Condition,
+        lhs: Register,
+        rhs: AluRhs,
+        dst: Register,
+    },
 }
 impl Instruction {
     fn decode(code: Word) -> Self {
@@ -182,8 +188,8 @@ impl Instruction {
         const GRP_LD_ST: Word = 0b011;
         const GRP_JMP: Word = 0b100;
         const GRP_BRA: Word = 0b101;
-        const GRP_UI: Word = 0b110;
-        const GRP_SYS: Word = 0b111;
+        const GRP_MOV_REG: Word = 0b110;
+        const GRP_MOV_IMM: Word = 0b111;
 
         let grp = code & 0x7;
         let op = (code >> 3) & 0xF;
@@ -193,17 +199,28 @@ impl Instruction {
 
         match grp {
             GRP_MISC => {
-                const OP_NOP: Word = 0x0;
-                const OP_BRK: Word = 0x1;
-                const OP_HLT: Word = 0x2;
-                const OP_ERR: Word = 0x3;
+                if (op & 0x8) == 0 {
+                    const OP_NOP: Word = 0x0;
+                    const OP_BRK: Word = 0x1;
+                    const OP_HLT: Word = 0x2;
+                    const OP_ERR: Word = 0x3;
 
-                match op & 0x3 {
-                    OP_NOP => Self::Nop,
-                    OP_BRK => Self::Brk,
-                    OP_HLT => Self::Hlt,
-                    OP_ERR => Self::Err,
-                    _ => unreachable!(),
+                    match op & 0x3 {
+                        OP_NOP => Self::Nop,
+                        OP_BRK => Self::Brk,
+                        OP_HLT => Self::Hlt,
+                        OP_ERR => Self::Err,
+                        _ => unreachable!(),
+                    }
+                } else {
+                    const OP_SYS: Word = 0x0;
+                    const OP_CLRK: Word = 0x1;
+
+                    match op & 0x1 {
+                        OP_SYS => Self::Sys,
+                        OP_CLRK => Self::Clrk,
+                        _ => unreachable!(),
+                    }
                 }
             }
             GRP_ALU_REG => Self::Alu {
@@ -237,32 +254,38 @@ impl Instruction {
                 }
             }
             GRP_JMP => {
-                if (op & 0x8) == 0 {
-                    Self::Jump {
+                const OP_JMP: Word = 0b00;
+                const OP_LINK: Word = 0b01;
+                const OP_UI: Word = 0b10;
+
+                match op >> 2 {
+                    OP_JMP => Self::Jump {
                         base: rs1,
                         indirect: (op & 0x1) != 0,
-                    }
-                } else {
-                    Self::Link { dst: rd }
+                    },
+                    OP_LINK => Self::Link { dst: rd },
+                    OP_UI => Self::UpperImmediate {
+                        kind: UpperImmediateKind::decode(op),
+                        dst: rd,
+                    },
+                    _ => Self::Nop,
                 }
             }
             GRP_BRA => Self::Branch {
-                condition: BranchCondition::decode(op),
+                condition: Condition::decode(op),
             },
-            GRP_UI => Self::UpperImmediate {
-                kind: UpperImmediateKind::decode(op),
+            GRP_MOV_REG => Self::Move {
+                condition: Condition::decode(op),
+                lhs: rs1,
+                rhs: AluRhs::Register(rs2),
                 dst: rd,
             },
-            GRP_SYS => {
-                const OP_SYS: Word = 0x0;
-                const OP_CLRK: Word = 0x1;
-
-                match op & 0x1 {
-                    OP_SYS => Self::Sys,
-                    OP_CLRK => Self::Clrk,
-                    _ => unreachable!(),
-                }
-            }
+            GRP_MOV_IMM => Self::Move {
+                condition: Condition::decode(op),
+                lhs: rs1,
+                rhs: AluRhs::Immediate,
+                dst: rd,
+            },
             _ => unreachable!(),
         }
     }
@@ -493,24 +516,24 @@ impl Cpu {
         result
     }
 
-    fn do_branch(&mut self, condition: BranchCondition) -> bool {
+    fn check_condition(&self, condition: Condition) -> bool {
         match condition {
-            BranchCondition::Never => false,
-            BranchCondition::Carry => self.c,
-            BranchCondition::Zero => self.z,
-            BranchCondition::Sign => self.s,
-            BranchCondition::Overflow => self.o,
-            BranchCondition::NotCarry => !self.c,
-            BranchCondition::NotZero => !self.z,
-            BranchCondition::NotSign => !self.s,
-            BranchCondition::NotOverflow => !self.o,
-            BranchCondition::UnsignedLessEqual => !self.c || self.z,
-            BranchCondition::UnsignedGreater => self.c && !self.z,
-            BranchCondition::SignedLess => self.s != self.o,
-            BranchCondition::SignedGreaterEqual => self.s == self.o,
-            BranchCondition::SignedLessEqual => (self.s != self.o) || self.z,
-            BranchCondition::SignedGreater => (self.s == self.o) && !self.z,
-            BranchCondition::Always => true,
+            Condition::Never => false,
+            Condition::Carry => self.c,
+            Condition::Zero => self.z,
+            Condition::Sign => self.s,
+            Condition::Overflow => self.o,
+            Condition::NotCarry => !self.c,
+            Condition::NotZero => !self.z,
+            Condition::NotSign => !self.s,
+            Condition::NotOverflow => !self.o,
+            Condition::UnsignedLessEqual => !self.c | self.z,
+            Condition::UnsignedGreater => self.c & !self.z,
+            Condition::SignedLess => self.s != self.o,
+            Condition::SignedGreaterEqual => self.s == self.o,
+            Condition::SignedLessEqual => (self.s != self.o) | self.z,
+            Condition::SignedGreater => (self.s == self.o) & !self.z,
+            Condition::Always => true,
         }
     }
 
@@ -543,6 +566,18 @@ impl Cpu {
             Instruction::Err => {
                 self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Error
+            }
+            Instruction::Sys => {
+                self.k = true;
+
+                self.pc = SYSCALL_ADDRESS;
+                ClockResult::Continue
+            }
+            Instruction::Clrk => {
+                self.k = false;
+
+                self.pc = self.pc.wrapping_add(PC_INC);
+                ClockResult::Continue
             }
             Instruction::Alu { op, lhs, rhs, dst } => {
                 let result = self.exec_alu(op, lhs, rhs);
@@ -615,16 +650,6 @@ impl Cpu {
                 self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
-            Instruction::Branch { condition } => {
-                if self.do_branch(condition) {
-                    let addr = self.pc.wrapping_add(self.imm22);
-                    self.pc = addr & 0xFFFF_FFFC;
-                } else {
-                    self.pc = self.pc.wrapping_add(PC_INC);
-                }
-
-                ClockResult::Continue
-            }
             Instruction::UpperImmediate { kind, dst } => {
                 let value = match kind {
                     UpperImmediateKind::Load => self.u_imm,
@@ -636,14 +661,28 @@ impl Cpu {
                 self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
-            Instruction::Sys => {
-                self.k = true;
+            Instruction::Branch { condition } => {
+                if self.check_condition(condition) {
+                    let addr = self.pc.wrapping_add(self.imm22);
+                    self.pc = addr & 0xFFFF_FFFC;
+                } else {
+                    self.pc = self.pc.wrapping_add(PC_INC);
+                }
 
-                self.pc = SYSCALL_ADDRESS;
                 ClockResult::Continue
             }
-            Instruction::Clrk => {
-                self.k = false;
+            Instruction::Move {
+                condition,
+                lhs,
+                rhs,
+                dst,
+            } => {
+                let value = if self.check_condition(condition) {
+                    self.read_rhs(rhs)
+                } else {
+                    self.read_reg(lhs)
+                };
+                self.write_reg(dst, value);
 
                 self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
@@ -678,7 +717,13 @@ impl Display for Cpu {
             let base_name = format!("R{}", i + 1);
             let abi_name = format!("({})", REG_NAMES[i]);
 
-            writeln!(f, "{:<3} {:<4}: {:0>8X}", base_name, abi_name, self.regs[i])?;
+            writeln!(
+                f,
+                "{:<3} {:<4}: {:0>8X}",
+                base_name,
+                abi_name,
+                self.regs[i + 1]
+            )?;
         }
 
         Ok(())
