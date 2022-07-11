@@ -194,8 +194,8 @@ impl Bitmap {
     const UPPERCASE_C: Self = define_bitmap!(
         0x00FFF000,
         0x0F000F00,
-        0xF0000000,
-        0xF0000000,
+        0x0F000000,
+        0x0F000000,
         0x0F000F00,
         0x00FFF000,
         0x00000000,
@@ -238,8 +238,8 @@ impl Bitmap {
     const UPPERCASE_G: Self = define_bitmap!(
         0x00FFF000,
         0x0F000F00,
-        0xF0000000,
-        0xF00FFF00,
+        0x0F000000,
+        0x0F0FFF00,
         0x0F000F00,
         0x00FFF000,
         0x00000000,

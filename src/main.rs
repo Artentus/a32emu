@@ -265,11 +265,14 @@ impl EmuState {
         while crossterm::event::poll(Duration::ZERO)? {
             let event = crossterm::event::read()?;
             if let crossterm::event::Event::Key(key_event) = event {
-                const ESC_SEQ: [u8; 2] = [0x1B, 0x5B];
+                const ESC_SEQ: [u8; 2] = [0x1B, 0x5B]; // ESC[
 
                 match key_event.code {
-                    crossterm::event::KeyCode::Backspace => {}
-                    crossterm::event::KeyCode::Enter => uart.host_write(b'\n'),
+                    crossterm::event::KeyCode::Backspace => uart.host_write(b'\x08'),
+                    crossterm::event::KeyCode::Enter => {
+                        uart.host_write(b'\r');
+                        uart.host_write(b'\n');
+                    }
                     crossterm::event::KeyCode::Left => {
                         uart.host_write(ESC_SEQ[0]);
                         uart.host_write(ESC_SEQ[1]);
