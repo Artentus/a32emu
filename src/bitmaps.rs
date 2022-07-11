@@ -60,84 +60,84 @@ impl Bitmap {
     );
 
     const DIGIT_0: Self = define_bitmap!(
-        0x000FFF00,
-        0x00F000F0,
-        0x00F00FF0,
-        0x00FFF0F0,
-        0x00F000F0,
-        0x000FFF00,
+        0x00FFF000,
+        0x0F000F00,
+        0x0F00FF00,
+        0x0FFF0F00,
+        0x0F000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_1: Self = define_bitmap!(
-        0x0000F000,
-        0x000FF000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x000FFF00,
+        0x000F0000,
+        0x00FF0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_2: Self = define_bitmap!(
-        0x00FFFF00,
-        0x0F0000F0,
-        0x00000F00,
-        0x000FF000,
+        0x00FFF000,
+        0x0F000F00,
+        0x0000F000,
+        0x000F0000,
         0x00F00000,
-        0x0FFFFFF0,
+        0x0FFFFF00,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_3: Self = define_bitmap!(
-        0x00FFFF00,
-        0x0F0000F0,
+        0x00FFF000,
+        0x0F000F00,
+        0x000FF000,
         0x00000F00,
-        0x0000FF00,
-        0x0F0000F0,
-        0x00FFFF00,
+        0x0F000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_4: Self = define_bitmap!(
-        0x00000F00,
-        0x0000FF00,
-        0x000F0F00,
-        0x00F00F00,
-        0x0FFFFFF0,
-        0x00000F00,
+        0x0000F000,
+        0x000FF000,
+        0x00F0F000,
+        0x0F00F000,
+        0x0FFFFF00,
+        0x0000F000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_5: Self = define_bitmap!(
-        0x0FFFFFF0,
-        0x0F000000,
         0x0FFFFF00,
-        0x000000F0,
-        0x0F0000F0,
-        0x00FFFF00,
+        0x0F000000,
+        0x0FFFF000,
+        0x00000F00,
+        0x0F000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_6: Self = define_bitmap!(
-        0x00FFFF00,
+        0x00FFF000,
         0x0F000000,
-        0x0FFFFF00,
-        0x0F0000F0,
-        0x0F0000F0,
-        0x00FFFF00,
+        0x0FFFF000,
+        0x0F000F00,
+        0x0F000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_7: Self = define_bitmap!(
-        0x0FFFFFF0,
+        0x0FFFFF00,
         0x00000F00,
         0x0000F000,
         0x000F0000,
@@ -148,34 +148,34 @@ impl Bitmap {
     );
 
     const DIGIT_8: Self = define_bitmap!(
-        0x00FFFF00,
-        0x0F0000F0,
-        0x00FFFF00,
-        0x0F0000F0,
-        0x0F0000F0,
-        0x00FFFF00,
+        0x00FFF000,
+        0x0F000F00,
+        0x00FFF000,
+        0x0F000F00,
+        0x0F000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const DIGIT_9: Self = define_bitmap!(
+        0x00FFF000,
+        0x0F000F00,
+        0x0F000F00,
         0x00FFFF00,
-        0x0F0000F0,
-        0x0F0000F0,
-        0x00FFFFF0,
-        0x000000F0,
-        0x00FFFF00,
+        0x00000F00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const UPPERCASE_A: Self = define_bitmap!(
-        0x000FF000,
-        0x000FF000,
-        0x00F00F00,
-        0x00FFFF00,
-        0x0F0000F0,
-        0x0F0000F0,
+        0x000F0000,
+        0x00F0F000,
+        0x0F000F00,
+        0x0FFFFF00,
+        0x0F000F00,
+        0x0F000F00,
         0x00000000,
         0x00000000,
     );
@@ -457,11 +457,11 @@ impl Bitmap {
 
     const LOWERCASE_A: Self = define_bitmap!(
         0x00000000,
+        0x00FFF000,
+        0x00000F00,
         0x00FFFF00,
-        0x000000F0,
-        0x00FFFFF0,
-        0x0F000FF0,
-        0x00FFF0F0,
+        0x0F000F00,
+        0x00FFFF00,
         0x00000000,
         0x00000000,
     );
@@ -469,10 +469,10 @@ impl Bitmap {
     const LOWERCASE_B: Self = define_bitmap!(
         0x0F000000,
         0x0F000000,
-        0x0FFFFF00,
-        0x0F0000F0,
-        0x0FF000F0,
-        0x0F0FFF00,
+        0x0FFFF000,
+        0x0F000F00,
+        0x0F000F00,
+        0x0FFFF000,
         0x00000000,
         0x00000000,
     );
@@ -480,32 +480,32 @@ impl Bitmap {
     const LOWERCASE_C: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x000FFF00,
-        0x00F00000,
-        0x00F00000,
-        0x000FFF00,
+        0x00FFF000,
+        0x0F000000,
+        0x0F000000,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const LOWERCASE_D: Self = define_bitmap!(
-        0x000000F0,
-        0x000000F0,
-        0x00FFFFF0,
-        0x0F0000F0,
-        0x0F000FF0,
-        0x00FFF0F0,
+        0x00000F00,
+        0x00000F00,
+        0x00FFFF00,
+        0x0F000F00,
+        0x0F000F00,
+        0x00FFFF00,
         0x00000000,
         0x00000000,
     );
 
     const LOWERCASE_E: Self = define_bitmap!(
         0x00000000,
-        0x00FFFF00,
-        0x0F0000F0,
-        0x0FFFFFF0,
+        0x00FFF000,
+        0x0F000F00,
+        0x0FFFFF00,
         0x0F000000,
-        0x00FFFF00,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
@@ -524,8 +524,8 @@ impl Bitmap {
     const LOWERCASE_G: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x00FF0F00,
-        0x0F00FF00,
+        0x00FFFF00,
+        0x0F000F00,
         0x0F000F00,
         0x00FFFF00,
         0x00000F00,
@@ -533,55 +533,55 @@ impl Bitmap {
     );
 
     const LOWERCASE_H: Self = define_bitmap!(
-        0x00F00000,
-        0x00F00000,
-        0x00FFF000,
-        0x00F00F00,
-        0x00F00F00,
-        0x00F00F00,
+        0x0F000000,
+        0x0F000000,
+        0x0FFFF000,
+        0x0F000F00,
+        0x0F000F00,
+        0x0F000F00,
         0x00000000,
         0x00000000,
     );
 
     const LOWERCASE_I: Self = define_bitmap!(
-        0x0000F000,
+        0x000F0000,
         0x00000000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
+        0x00FF0000,
+        0x000F0000,
+        0x000F0000,
+        0x00FFF000,
         0x00000000,
         0x00000000,
     );
 
     const LOWERCASE_J: Self = define_bitmap!(
-        0x0000F000,
+        0x000F0000,
         0x00000000,
-        0x000FF000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
         0x00FF0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x0FF00000,
     );
 
     const LOWERCASE_K: Self = define_bitmap!(
-        0x00F00000,
-        0x00F00000,
-        0x00F00F00,
-        0x00F0F000,
-        0x00FF0000,
-        0x00F0FF00,
+        0x0F000000,
+        0x0F000000,
+        0x0F00F000,
+        0x0F0F0000,
+        0x0FFF0000,
+        0x0F00F000,
         0x00000000,
         0x00000000,
     );
 
     const LOWERCASE_L: Self = define_bitmap!(
-        0x000F0000,
-        0x000F0000,
-        0x000F0000,
-        0x000F0000,
-        0x000F0000,
+        0x00F00000,
+        0x00F00000,
+        0x00F00000,
+        0x00F00000,
+        0x00F00000,
         0x000FF000,
         0x00000000,
         0x00000000,
@@ -590,10 +590,10 @@ impl Bitmap {
     const LOWERCASE_M: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0FF00FF0,
-        0x0F0FF0F0,
-        0x0F0000F0,
-        0x0F0000F0,
+        0x0FF0F000,
+        0x0F0F0F00,
+        0x0F0F0F00,
+        0x0F0F0F00,
         0x00000000,
         0x00000000,
     );
@@ -601,8 +601,8 @@ impl Bitmap {
     const LOWERCASE_N: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0F0FFF00,
-        0x0FF00F00,
+        0x0FFFF000,
+        0x0F000F00,
         0x0F000F00,
         0x0F000F00,
         0x00000000,
@@ -623,10 +623,10 @@ impl Bitmap {
     const LOWERCASE_P: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0F0FFF00,
-        0x0FF000F0,
-        0x0F0000F0,
-        0x0FFFFF00,
+        0x0FFFF000,
+        0x0F000F00,
+        0x0F000F00,
+        0x0FFFF000,
         0x0F000000,
         0x0F000000,
     );
@@ -634,19 +634,19 @@ impl Bitmap {
     const LOWERCASE_Q: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x00FFF0F0,
-        0x0F000FF0,
-        0x0F0000F0,
-        0x00FFFFF0,
-        0x000000F0,
-        0x000000F0,
+        0x00FFFF00,
+        0x0F000F00,
+        0x0F000F00,
+        0x00FFFF00,
+        0x00000F00,
+        0x00000F00,
     );
 
     const LOWERCASE_R: Self = define_bitmap!(
         0x00000000,
         0x00000000,
         0x0F0FF000,
-        0x0FF00F00,
+        0x0FF00000,
         0x0F000000,
         0x0F000000,
         0x00000000,
@@ -680,8 +680,8 @@ impl Bitmap {
         0x00000000,
         0x0F000F00,
         0x0F000F00,
-        0x0F00FF00,
-        0x00FF0F00,
+        0x0F000F00,
+        0x00FFFF00,
         0x00000000,
         0x00000000,
     );
@@ -700,10 +700,10 @@ impl Bitmap {
     const LOWERCASE_W: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0F0000F0,
-        0x0F0000F0,
-        0x0F0FF0F0,
-        0x00F00F00,
+        0x0F000F00,
+        0x0F0F0F00,
+        0x0F0F0F00,
+        0x00F0F000,
         0x00000000,
         0x00000000,
     );
@@ -713,8 +713,8 @@ impl Bitmap {
         0x00000000,
         0x0F000F00,
         0x00F0F000,
-        0x000F0000,
-        0x0FF0FF00,
+        0x00FFF000,
+        0x0F000F00,
         0x00000000,
         0x00000000,
     );
@@ -723,11 +723,11 @@ impl Bitmap {
         0x00000000,
         0x00000000,
         0x0F0000F0,
-        0x00F000F0,
-        0x000F0F00,
-        0x0000F000,
+        0x00F00F00,
+        0x000FF000,
         0x000F0000,
-        0x0FF00000,
+        0x00F00000,
+        0x0F000000,
     );
 
     const LOWERCASE_Z: Self = define_bitmap!(
@@ -741,13 +741,6 @@ impl Bitmap {
         0x00000000,
     );
 
-
-
-
-
-
-
-
     const SPACE: Self = define_bitmap!(
         0x00000000,
         0x00000000,
@@ -760,12 +753,12 @@ impl Bitmap {
     );
 
     const EXCLAMATION_MARK: Self = define_bitmap!(
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
         0x00000000,
-        0x0000F000,
+        0x000F0000,
         0x00000000,
         0x00000000,
     );
@@ -793,23 +786,23 @@ impl Bitmap {
     );
 
     const DOLLAR_SIGN: Self = define_bitmap!(
-        0x0000F000,
-        0x000FFFF0,
-        0x00F0F000,
-        0x000FFF00,
-        0x0000F0F0,
+        0x000F0000,
         0x00FFFF00,
-        0x0000F000,
+        0x0F0F0000,
+        0x00FFF000,
+        0x000F0F00,
+        0x0FFFF000,
+        0x000F0000,
         0x00000000,
     );
 
     const PERCENT_SIGN: Self = define_bitmap!(
-        0x0FF000F0,
-        0xF00F0F00,
-        0x0FF0F000,
-        0x000F0FF0,
-        0x00F0F00F,
-        0x0F000FF0,
+        0x00F000F0,
+        0x0F0F0F00,
+        0x00F0F000,
+        0x000F0F00,
+        0x00F0F0F0,
+        0x0F000F00,
         0x00000000,
         0x00000000,
     );
@@ -859,11 +852,11 @@ impl Bitmap {
     );
 
     const ASTERISK: Self = define_bitmap!(
-        0x0000F000,
-        0x00F0F0F0,
-        0x000FFF00,
-        0x000F0F00,
-        0x00F000F0,
+        0x000F0000,
+        0x0F0F0F00,
+        0x00FFF000,
+        0x00F0F000,
+        0x0F000F00,
         0x00000000,
         0x00000000,
         0x00000000,
@@ -871,11 +864,11 @@ impl Bitmap {
 
     const PLUS_SIGN: Self = define_bitmap!(
         0x00000000,
-        0x0000F000,
-        0x0000F000,
-        0x00FFFFF0,
-        0x0000F000,
-        0x0000F000,
+        0x000F0000,
+        0x000F0000,
+        0x0FFFFF00,
+        0x000F0000,
+        0x000F0000,
         0x00000000,
         0x00000000,
     );
@@ -886,8 +879,8 @@ impl Bitmap {
         0x00000000,
         0x00000000,
         0x00000000,
-        0x0000F000,
         0x000F0000,
+        0x00F00000,
         0x00000000,
     );
 
@@ -908,7 +901,7 @@ impl Bitmap {
         0x00000000,
         0x00000000,
         0x00000000,
-        0x0000F000,
+        0x000F0000,
         0x00000000,
         0x00000000,
     );
@@ -927,10 +920,10 @@ impl Bitmap {
     const COLON: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0000F000,
+        0x000F0000,
         0x00000000,
         0x00000000,
-        0x0000F000,
+        0x000F0000,
         0x00000000,
         0x00000000,
     );
@@ -938,11 +931,11 @@ impl Bitmap {
     const SEMICOLON: Self = define_bitmap!(
         0x00000000,
         0x00000000,
-        0x0000F000,
-        0x00000000,
-        0x00000000,
-        0x0000F000,
         0x000F0000,
+        0x00000000,
+        0x00000000,
+        0x000F0000,
+        0x00F00000,
         0x00000000,
     );
 
@@ -1079,12 +1072,12 @@ impl Bitmap {
     );
 
     const VERTICAL_BAR: Self = define_bitmap!(
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
-        0x0000F000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
+        0x000F0000,
         0x00000000,
         0x00000000,
     );
