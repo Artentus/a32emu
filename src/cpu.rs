@@ -21,11 +21,7 @@ enum AluOperation {
     Lsr,
     Asr,
     Mul,
-    Mulhuu,
-    Mulhss,
-    Mulhsu,
-    Csub,
-    Slc,
+    Nop,
 }
 impl AluOperation {
     fn decode(op: Word) -> Self {
@@ -41,12 +37,7 @@ impl AluOperation {
             0x8 => Self::Lsr,
             0x9 => Self::Asr,
             0xA => Self::Mul,
-            0xB => Self::Mulhuu,
-            0xC => Self::Mulhss,
-            0xD => Self::Mulhsu,
-            0xE => Self::Csub,
-            0xF => Self::Slc,
-            _ => unreachable!(),
+            _ => Self::Nop,
         }
     }
 }
@@ -248,8 +239,8 @@ impl Instruction {
                 } else {
                     Self::Store {
                         mode,
-                        base: rd,
-                        src: rs1,
+                        base: rs1,
+                        src: rd,
                     }
                 }
             }
@@ -393,7 +384,7 @@ impl Cpu {
         let rhs_val = self.read_rhs(rhs);
 
         let mut c: Flag = self.c;
-        let z: Flag;
+        let mut z: Flag = self.z;
         let mut s: Flag = self.s;
         let mut o: Flag = self.o;
 
@@ -470,42 +461,7 @@ impl Cpu {
                 z = result == 0;
                 result
             }
-            AluOperation::Mulhuu => {
-                let result = lhs_val.widening_mul(rhs_val).1;
-                z = result == 0;
-                result
-            }
-            AluOperation::Mulhss => {
-                let full = ((lhs_val as SWord) as i64) * ((rhs_val as SWord) as i64);
-                let result = (full >> 32) as Word;
-                z = result == 0;
-                result
-            }
-            AluOperation::Mulhsu => {
-                let full = ((lhs_val as SWord) as i64) * (rhs_val as i64);
-                let result = (full >> 32) as Word;
-                z = result == 0;
-                result
-            }
-            AluOperation::Csub => {
-                if lhs_val >= rhs_val {
-                    let result = lhs_val - rhs_val;
-                    c = true;
-                    z = result == 0;
-                    result
-                } else {
-                    c = false;
-                    z = lhs_val == 0;
-                    lhs_val
-                }
-            }
-            AluOperation::Slc => {
-                let c_in = if c { 1 } else { 0 };
-                let result = (lhs_val << 1) | c_in;
-                c = (lhs_val >> 31) != 0;
-                z = result == 0;
-                result
-            }
+            _ => 0,
         };
 
         self.c = c;
