@@ -586,8 +586,8 @@ impl MemoryBus {
 }
 
 pub trait Device {
-    fn read(&mut self, addr: usize) -> Word;
-    fn write(&mut self, addr: usize, value: Word);
+    fn read(&mut self, addr: usize, k_flag: bool) -> Word;
+    fn write(&mut self, addr: usize, value: Word, k_flag: bool);
 }
 
 struct DeviceMapping {
@@ -674,26 +674,20 @@ impl IoBus {
     }
 
     pub fn read(&mut self, addr: usize, k_flag: bool) -> Word {
-        if k_flag {
-            if let Some(index) = self.get_mapping(addr) {
-                let mapping = self.mappings.get(index).expect("Cache desync");
-                let device_addr = calc_device_addr(mapping, addr);
-                borrow_shared(&mapping.device).read(device_addr)
-            } else {
-                0
-            }
+        if let Some(index) = self.get_mapping(addr) {
+            let mapping = self.mappings.get(index).expect("Cache desync");
+            let device_addr = calc_device_addr(mapping, addr);
+            borrow_shared(&mapping.device).read(device_addr, k_flag)
         } else {
             0
         }
     }
 
     pub fn write(&mut self, addr: usize, value: Word, k_flag: bool) {
-        if k_flag {
-            if let Some(index) = self.get_mapping(addr) {
-                let mapping = self.mappings.get(index).expect("Cache desync");
-                let device_addr = calc_device_addr(mapping, addr);
-                borrow_shared(&mapping.device).write(device_addr, value);
-            }
+        if let Some(index) = self.get_mapping(addr) {
+            let mapping = self.mappings.get(index).expect("Cache desync");
+            let device_addr = calc_device_addr(mapping, addr);
+            borrow_shared(&mapping.device).write(device_addr, value, k_flag);
         }
     }
 }
@@ -741,11 +735,11 @@ impl DmaController {
     }
 }
 impl Device for DmaController {
-    fn read(&mut self, addr: usize) -> Word {
+    fn read(&mut self, addr: usize, _k_flag: bool) -> Word {
         self.regs[addr & 0x3]
     }
 
-    fn write(&mut self, addr: usize, value: Word) {
+    fn write(&mut self, addr: usize, value: Word, _k_flag: bool) {
         let addr = addr & 0x3;
 
         self.regs[addr] = if addr == 0x2 {
@@ -788,18 +782,22 @@ impl UartController {
     }
 }
 impl Device for UartController {
-    fn read(&mut self, addr: usize) -> Word {
-        match addr {
-            0x0 => self.rx.pop_front().unwrap_or_default() as Word,
-            0x1 => 0,
-            0x2 => usize::min(self.rx.len(), 0xFF) as Word,
-            0x3 => usize::min(self.tx.len(), 0xFF) as Word,
-            _ => unreachable!(),
+    fn read(&mut self, addr: usize, k_flag: bool) -> Word {
+        if k_flag {
+            match addr {
+                0x0 => self.rx.pop_front().unwrap_or_default() as Word,
+                0x1 => 0,
+                0x2 => usize::min(self.rx.len(), 0xFF) as Word,
+                0x3 => usize::min(self.tx.len(), 0xFF) as Word,
+                _ => unreachable!(),
+            }
+        } else {
+            0
         }
     }
 
-    fn write(&mut self, addr: usize, value: Word) {
-        if addr == 0x1 {
+    fn write(&mut self, addr: usize, value: Word, k_flag: bool) {
+        if k_flag && (addr == 0x1) {
             self.tx.push_back(value as u8);
         }
     }
