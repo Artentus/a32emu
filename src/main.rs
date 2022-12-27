@@ -219,9 +219,9 @@ impl EmuState {
         let mut io_bus = IoBus::new();
 
         let dma = make_shared(DmaController::new());
-        io_bus.map_device(clone_shared(&dma), 0x000, 0x003, 0x003, 0x000);
+        io_bus.map_device(clone_shared(&dma), 0x004, 0x007, 0x003, 0x000);
         let uart = make_shared(UartController::new());
-        io_bus.map_device(clone_shared(&uart), 0x004, 0x007, 0x003, 0x000);
+        io_bus.map_device(clone_shared(&uart), 0x000, 0x003, 0x003, 0x000);
 
         terminal::enable_raw_mode()?;
 
