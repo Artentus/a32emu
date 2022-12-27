@@ -494,11 +494,11 @@ impl Cpu {
     }
 
     pub fn clock(&mut self, mem: &mut MemoryBus, io: &mut IoBus) -> ClockResult {
-        const PC_INC: Word = std::mem::size_of::<Word>() as Word;
-        self.pc = self.pc.wrapping_add(PC_INC);
-
         let inst = mem.read32(self.pc as usize, self.k);
         self.inst = Instruction::decode(inst);
+
+        const PC_INC: Word = std::mem::size_of::<Word>() as Word;
+        self.pc = self.pc.wrapping_add(PC_INC);
 
         self.imm15 = ((inst as SWord) >> 17) as Word;
         self.imm22 = ((((inst & 0x8000_0000) as SWord) >> 10) as Word)
