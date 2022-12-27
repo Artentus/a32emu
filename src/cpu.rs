@@ -495,6 +495,7 @@ impl Cpu {
 
     pub fn clock(&mut self, mem: &mut MemoryBus, io: &mut IoBus) -> ClockResult {
         const PC_INC: Word = std::mem::size_of::<Word>() as Word;
+        self.pc = self.pc.wrapping_add(PC_INC);
 
         let inst = mem.read32(self.pc as usize, self.k);
         self.inst = Instruction::decode(inst);
@@ -507,22 +508,10 @@ impl Cpu {
             (inst & 0x8000_0000) | ((inst & 0x6000_0000) >> 17) | ((inst & 0x1FFF_F000) << 2);
 
         match self.inst {
-            Instruction::Nop => {
-                self.pc = self.pc.wrapping_add(PC_INC);
-                ClockResult::Continue
-            }
-            Instruction::Brk => {
-                self.pc = self.pc.wrapping_add(PC_INC);
-                ClockResult::Break
-            }
-            Instruction::Hlt => {
-                self.pc = self.pc.wrapping_add(PC_INC);
-                ClockResult::Halt
-            }
-            Instruction::Err => {
-                self.pc = self.pc.wrapping_add(PC_INC);
-                ClockResult::Error
-            }
+            Instruction::Nop => ClockResult::Continue,
+            Instruction::Brk => ClockResult::Break,
+            Instruction::Hlt => ClockResult::Halt,
+            Instruction::Err => ClockResult::Error,
             Instruction::Sys => {
                 self.k = true;
 
@@ -532,14 +521,12 @@ impl Cpu {
             Instruction::Clrk => {
                 self.k = false;
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Alu { op, lhs, rhs, dst } => {
                 let result = self.exec_alu(op, lhs, rhs);
                 self.write_reg(dst, result);
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Load {
@@ -573,7 +560,6 @@ impl Cpu {
 
                 self.write_reg(dst, value);
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Store { mode, base, src } => {
@@ -587,7 +573,6 @@ impl Cpu {
                     MemoryMode::Io => io.write(addr, value, self.k),
                 }
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Jump { base, indirect } => {
@@ -603,7 +588,6 @@ impl Cpu {
                 let value = self.pc.wrapping_add(self.imm15);
                 self.write_reg(dst, value);
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::UpperImmediate { kind, dst } => {
@@ -614,15 +598,12 @@ impl Cpu {
 
                 self.write_reg(dst, value);
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
             Instruction::Branch { condition } => {
                 if self.check_condition(condition) {
                     let addr = self.pc.wrapping_add(self.imm22);
                     self.pc = addr & 0xFFFF_FFFC;
-                } else {
-                    self.pc = self.pc.wrapping_add(PC_INC);
                 }
 
                 ClockResult::Continue
@@ -640,7 +621,6 @@ impl Cpu {
                 };
                 self.write_reg(dst, value);
 
-                self.pc = self.pc.wrapping_add(PC_INC);
                 ClockResult::Continue
             }
         }
