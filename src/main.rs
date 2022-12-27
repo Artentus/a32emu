@@ -663,9 +663,21 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
             loop {
                 let mut buffer: [u8; 4] = [0; 4];
-                match rom_file.read_exact(&mut buffer) {
-                    Ok(_) => rom_vec.push(u32::from_ne_bytes(buffer)),
-                    Err(_) => break,
+                match rom_file.read(&mut buffer) {
+                    Ok(n) => {
+                        if n > 0 {
+                            rom_vec.push(u32::from_ne_bytes(buffer));
+                        }
+
+                        if n < 4 {
+                            break;
+                        }
+                    }
+                    Err(err) => {
+                        if err.kind() != std::io::ErrorKind::Interrupted {
+                            Err(err)?;
+                        }
+                    }
                 }
             }
 
